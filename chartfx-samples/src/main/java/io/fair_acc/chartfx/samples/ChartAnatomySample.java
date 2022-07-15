@@ -87,11 +87,11 @@ public class ChartAnatomySample extends Application {
         // chart.setToolBarSide(Side.LEFT);
         // chart.setToolBarSide(Side.BOTTOM);
 
-        chart.getToolBar().getChildren().add(new Label("ToolBar Menu: "));
+        chart.getToolBar().getItems().add(new Label("ToolBar Menu: "));
         for (final Side side : Side.values()) {
             final Button toolBarButton = new Button("ToolBar to " + side); // NOPMD
             toolBarButton.setOnMouseClicked(mevt -> chart.setToolBarSide(side));
-            chart.getToolBar().getChildren().add(toolBarButton);
+            chart.getToolBar().getItems().add(toolBarButton);
         }
 
         chart.getAxesPane(Side.BOTTOM).getChildren().add(xAxis1);

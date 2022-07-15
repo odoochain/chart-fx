@@ -1,12 +1,12 @@
 package io.fair_acc.chartfx.renderer.spi;
 
+import io.fair_acc.chartfx.Chart;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Orientation;
 
-import io.fair_acc.chartfx.XYChart;
 import io.fair_acc.chartfx.axes.Axis;
 import io.fair_acc.chartfx.renderer.Renderer;
 import io.fair_acc.dataset.DataSet;
@@ -89,7 +89,7 @@ public abstract class AbstractDataSetManagement<R extends Renderer> implements R
      * @param fallback The chart from which to get the axis if no axis is present
      * @return The requested axis
      */
-    protected Axis getFirstAxis(final Orientation orientation, final XYChart fallback) {
+    protected Axis getFirstAxis(final Orientation orientation, final Chart fallback) {
         final Axis axis = getFirstAxis(orientation);
         if (axis == null) {
             return fallback.getFirstAxis(orientation);

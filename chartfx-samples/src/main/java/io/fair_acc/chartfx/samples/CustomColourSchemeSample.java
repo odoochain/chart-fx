@@ -2,6 +2,8 @@ package io.fair_acc.chartfx.samples;
 
 import java.util.Collections;
 
+import io.fair_acc.chartfx.Chart;
+import io.fair_acc.chartfx.renderer.spi.utils.DefaultRenderColorScheme;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -23,13 +25,11 @@ import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.fair_acc.chartfx.XYChart;
 import io.fair_acc.chartfx.axes.spi.DefaultNumericAxis;
 import io.fair_acc.chartfx.plugins.EditAxis;
 import io.fair_acc.chartfx.plugins.Zoomer;
 import io.fair_acc.chartfx.renderer.ErrorStyle;
 import io.fair_acc.chartfx.renderer.spi.ErrorDataSetRenderer;
-import io.fair_acc.chartfx.renderer.spi.utils.DefaultRenderColorScheme;
 import io.fair_acc.dataset.spi.DoubleErrorDataSet;
 
 /**
@@ -44,7 +44,8 @@ public class CustomColourSchemeSample extends Application {
 
     @Override
     public void start(final Stage primaryStage) {
-        final XYChart chart = new XYChart(new DefaultNumericAxis("x-Axis"), new DefaultNumericAxis("y-Axis"));
+        final Chart chart = new Chart();
+        chart.getAxes().addAll(new DefaultNumericAxis("x-Axis"), new DefaultNumericAxis("y-Axis"));
         chart.getPlugins().add(new Zoomer()); // standard plugins, useful for most cases
         chart.getPlugins().add(new EditAxis()); // for editing axes
         VBox.setVgrow(chart, Priority.ALWAYS);

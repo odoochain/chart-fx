@@ -11,7 +11,6 @@ import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.css.*;
-import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
@@ -38,7 +37,7 @@ import io.fair_acc.dataset.utils.NoDuplicatesList;
  *
  * @author rstein
  */
-public abstract class AbstractAxisParameter extends Pane implements Axis {
+public abstract class AbstractAxisParameter extends Region implements Axis {
     private static final String CHART_CSS = Objects.requireNonNull(Chart.class.getResource("chart.css")).toExternalForm();
     private static final CssPropertyFactory<AbstractAxisParameter> CSS = new CssPropertyFactory<>(Region.getClassCssMetaData());
     protected static final int MAX_TICK_COUNT = 20;
@@ -46,8 +45,7 @@ public abstract class AbstractAxisParameter extends Pane implements Axis {
     private static final double DEFAULT_MAX_RANGE = +1.0;
     private static final double DEFAULT_TICK_UNIT = +5d;
 
-    // N.B. number of divisions, minor tick mark is not drawn if minorTickMark
-    // == majorTickMark
+    // N.B. number of divisions, minor tick mark is not drawn if minorTickMark == majorTickMark
     protected static final int DEFAULT_MINOR_TICK_COUNT = 10;
 
     private final transient AtomicBoolean autoNotification = new AtomicBoolean(true);

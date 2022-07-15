@@ -1,12 +1,11 @@
 package io.fair_acc.chartfx.plugins;
 
+import io.fair_acc.chartfx.Chart;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.geometry.Orientation;
 import javafx.util.StringConverter;
 
-import io.fair_acc.chartfx.Chart;
-import io.fair_acc.chartfx.XYChart;
 import io.fair_acc.chartfx.axes.Axis;
 import io.fair_acc.chartfx.axes.spi.MetricPrefix;
 import io.fair_acc.chartfx.renderer.Renderer;
@@ -32,7 +31,7 @@ public abstract class AbstractDataFormattingPlugin extends ChartPlugin {
         super();
         chartProperty().addListener((obs, oldChart, newChart) -> {
             if (newChart != null) {
-                if (!(newChart instanceof XYChart)) {
+                if (!(newChart instanceof Chart)) {
                     throw new IllegalArgumentException("cannot use chart of type '" + newChart.getClass().getSimpleName() + "' for this plug-ing");
                 }
 

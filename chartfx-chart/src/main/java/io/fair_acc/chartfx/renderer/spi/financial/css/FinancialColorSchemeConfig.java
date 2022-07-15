@@ -10,7 +10,7 @@ import javafx.scene.image.Image;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 
-import io.fair_acc.chartfx.XYChart;
+import io.fair_acc.chartfx.Chart;
 import io.fair_acc.chartfx.axes.spi.AbstractAxisParameter;
 import io.fair_acc.chartfx.renderer.Renderer;
 import io.fair_acc.chartfx.renderer.spi.financial.CandleStickRenderer;
@@ -161,7 +161,7 @@ public class FinancialColorSchemeConfig implements FinancialColorSchemeAware {
     }
 
     @Override
-    public void applyTo(String theme, String customColorScheme, XYChart chart) throws Exception {
+    public void applyTo(String theme, String customColorScheme, Chart chart) throws Exception {
         // fill global datasets
         for (DataSet dataset : chart.getDatasets()) {
             for (Renderer renderer : chart.getRenderers()) {
@@ -243,7 +243,7 @@ public class FinancialColorSchemeConfig implements FinancialColorSchemeAware {
     }
 
     @Override
-    public void applyTo(String theme, XYChart chart) throws Exception {
+    public void applyTo(String theme, Chart chart) throws Exception {
         applyTo(theme, null, chart);
     }
 

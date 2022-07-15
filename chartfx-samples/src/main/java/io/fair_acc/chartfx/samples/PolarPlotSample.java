@@ -1,12 +1,12 @@
 package io.fair_acc.chartfx.samples;
 
+import io.fair_acc.chartfx.Chart;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
-import io.fair_acc.chartfx.XYChart;
 import io.fair_acc.chartfx.axes.spi.DefaultNumericAxis;
 import io.fair_acc.chartfx.plugins.EditAxis;
 import io.fair_acc.chartfx.renderer.PolarTickStep;
@@ -35,7 +35,8 @@ public class PolarPlotSample extends Application {
         yAxis.setForceZeroInRange(true);
         yAxis.setLogAxis(true);
 
-        final XYChart chart = new XYChart(xAxis, yAxis);
+        final Chart chart = new Chart();
+        chart.getAxes().addAll(xAxis, yAxis);
         // set them false to make the plot faster
         chart.setAnimated(false);
         chart.getPlugins().add(new EditAxis());

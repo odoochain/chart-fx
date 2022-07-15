@@ -20,7 +20,7 @@ import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.fair_acc.chartfx.XYChart;
+import io.fair_acc.chartfx.Chart;
 import io.fair_acc.chartfx.axes.Axis;
 import io.fair_acc.chartfx.axes.spi.AbstractAxisParameter;
 import io.fair_acc.chartfx.axes.spi.DefaultNumericAxis;
@@ -55,9 +55,9 @@ import io.fair_acc.math.spectra.wavelet.ContinuousWavelet;
  */
 public class ShortTimeFourierTransformSample extends AbstractDemoApplication {
     private static final Logger LOGGER = LoggerFactory.getLogger(ShortTimeFourierTransformSample.class);
-    protected XYChart chart1;
-    protected XYChart chart2;
-    protected XYChart chart3;
+    protected Chart chart1;
+    protected Chart chart2;
+    protected Chart chart3;
 
     // rawData controls
     private final Spinner<Integer> nSamples = new Spinner<>(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 10_000, 4000, 500));
@@ -98,7 +98,7 @@ public class ShortTimeFourierTransformSample extends AbstractDemoApplication {
     @Override
     public Node getContent() {
         // rawData chart
-        chart3 = new XYChart();
+        chart3 = new Chart();
         chart3.getXAxis().setAutoUnitScaling(true);
         chart3.getPlugins().add(new UpdateAxisLabels());
         chart3.getPlugins().add(new Zoomer());
@@ -108,7 +108,7 @@ public class ShortTimeFourierTransformSample extends AbstractDemoApplication {
 
         rawData.addListener(evt -> stft(rawData, stftData));
         // Short Time Fourier Transform chart
-        chart1 = new XYChart();
+        chart1 = new Chart();
         final ContourDataSetRenderer contourChartRenderer1 = new ContourDataSetRenderer();
         chart1.getRenderers().set(0, contourChartRenderer1);
         chart1.getRenderers().add(new MetaDataRenderer(chart1));
@@ -133,7 +133,7 @@ public class ShortTimeFourierTransformSample extends AbstractDemoApplication {
 
         rawData.addListener(evt -> wavelet(rawData, waveletData));
         // Wavelet Transform Chart
-        chart2 = new XYChart();
+        chart2 = new Chart();
         final ContourDataSetRenderer contourChartRenderer2 = new ContourDataSetRenderer();
         chart2.getRenderers().set(0, contourChartRenderer2);
         final DefaultNumericAxis xAxis2 = new DefaultNumericAxis();

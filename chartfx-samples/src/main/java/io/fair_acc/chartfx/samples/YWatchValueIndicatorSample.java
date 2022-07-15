@@ -2,6 +2,7 @@ package io.fair_acc.chartfx.samples;
 
 import java.util.Objects;
 
+import io.fair_acc.chartfx.Chart;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -14,7 +15,6 @@ import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
-import io.fair_acc.chartfx.XYChart;
 import io.fair_acc.chartfx.axes.spi.DefaultNumericAxis;
 import io.fair_acc.chartfx.plugins.YWatchValueIndicator;
 import io.fair_acc.chartfx.ui.geometry.Side;
@@ -35,7 +35,8 @@ public class YWatchValueIndicatorSample extends Application {
         DefaultNumericAxis yAxis = new DefaultNumericAxis();
         DefaultNumericAxis yAxis2 = new DefaultNumericAxis();
         yAxis2.setSide(Side.RIGHT);
-        final XYChart chart = new XYChart(xAxis, yAxis);
+        final Chart chart = new Chart();
+        chart.getAxes().addAll(xAxis, yAxis);
         root.getChildren().add(chart);
         chart.getAxes().add(yAxis2);
 

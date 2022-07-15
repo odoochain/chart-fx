@@ -2,11 +2,11 @@ package io.fair_acc.chartfx.samples;
 
 import java.util.concurrent.TimeUnit;
 
+import io.fair_acc.chartfx.Chart;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
-import io.fair_acc.chartfx.XYChart;
 import io.fair_acc.chartfx.axes.spi.DefaultNumericAxis;
 import io.fair_acc.chartfx.plugins.EditAxis;
 import io.fair_acc.chartfx.plugins.Zoomer;
@@ -26,7 +26,8 @@ public class PaddedAutoGrowAxisSample extends Application {
     public void start(Stage primaryStage) throws Exception {
         var xAxis = new DefaultNumericAxis();
         var yAxis = new DefaultNumericAxis();
-        var chart = new XYChart(xAxis, yAxis);
+        var chart = new Chart();
+        chart.getAxes().addAll(xAxis, yAxis);
         chart.getPlugins().add(new EditAxis());
         chart.getPlugins().add(new Zoomer());
 

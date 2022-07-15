@@ -6,6 +6,8 @@ import static io.fair_acc.dataset.DataSet.DIM_Y;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.fair_acc.chartfx.Chart;
+import io.fair_acc.misc.samples.plugins.Snow;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
@@ -32,7 +34,6 @@ import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.fair_acc.chartfx.XYChart;
 import io.fair_acc.chartfx.axes.spi.DefaultNumericAxis;
 import io.fair_acc.chartfx.plugins.EditAxis;
 import io.fair_acc.chartfx.plugins.Zoomer;
@@ -45,7 +46,6 @@ import io.fair_acc.dataset.DataSet;
 import io.fair_acc.dataset.spi.DataSetBuilder;
 import io.fair_acc.dataset.spi.DoubleDataSet;
 import io.fair_acc.dataset.spi.TransposedDataSet;
-import io.fair_acc.misc.samples.plugins.Snow;
 
 /**
  * Happy Christmas and a Happy Coding 2020
@@ -73,8 +73,8 @@ public class SnowFlakeSample extends Application {
 
     @Override
     public void start(final Stage primaryStage) {
-        final XYChart chart1 = getChristmasChart(false);
-        final XYChart chart2 = getChristmasChart(true);
+        final Chart chart1 = getChristmasChart(false);
+        final Chart chart2 = getChristmasChart(true);
 
         final CheckBox cbTransposed = new CheckBox("flip tree");
         cbTransposed.setTooltip(new Tooltip("press to flip tree"));
@@ -126,7 +126,7 @@ public class SnowFlakeSample extends Application {
         }
     }
 
-    private XYChart getChristmasChart(final boolean inverted) {
+    private Chart getChristmasChart(final boolean inverted) {
         DefaultNumericAxis xAxis = new DefaultNumericAxis("X", "mas");
         xAxis.setAutoRanging(false);
         xAxis.set(-11.0, +11.0);
@@ -138,7 +138,8 @@ public class SnowFlakeSample extends Application {
         yAxis.getAxisLabel().setTextAlignment(TextAlignment.RIGHT);
         yAxis.setSide(Side.CENTER_VER);
 
-        final XYChart chart = new XYChart(xAxis, yAxis);
+        final Chart chart = new Chart();
+        chart.getAxes().addAll(xAxis, yAxis);
         chart.getPlugins().add(new Zoomer());
         chart.getPlugins().add(new EditAxis());
         Snow snowPlugin = new Snow();

@@ -1,5 +1,6 @@
 package io.fair_acc.chartfx.samples;
 
+import io.fair_acc.chartfx.Chart;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
@@ -11,9 +12,6 @@ import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.fair_acc.chartfx.XYChart;
-import io.fair_acc.chartfx.axes.spi.DefaultNumericAxis;
-import io.fair_acc.chartfx.plugins.CrosshairIndicator;
 import io.fair_acc.chartfx.plugins.EditAxis;
 import io.fair_acc.chartfx.plugins.Zoomer;
 import io.fair_acc.chartfx.utils.FXUtils;
@@ -32,7 +30,7 @@ public class VisibilityToggleSample extends Application {
 
     @Override
     public void start(final Stage primaryStage) {
-        final XYChart chart = new XYChart();
+        final Chart chart = new Chart();
         chart.getPlugins().addAll(new Zoomer(), new EditAxis()); // standard plugin, useful for most cases
 
         final DoubleDataSet dataSet1 = new DoubleDataSet("data set #1");

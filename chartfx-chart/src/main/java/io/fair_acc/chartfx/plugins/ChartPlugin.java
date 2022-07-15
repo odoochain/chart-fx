@@ -3,6 +3,7 @@ package io.fair_acc.chartfx.plugins;
 import java.util.LinkedList;
 import java.util.List;
 
+import io.fair_acc.chartfx.Chart;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -22,8 +23,6 @@ import javafx.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.fair_acc.chartfx.Chart;
-import io.fair_acc.chartfx.XYChart;
 import io.fair_acc.chartfx.axes.Axis;
 import io.fair_acc.dataset.spi.utils.Tuple;
 
@@ -144,12 +143,11 @@ public abstract class ChartPlugin {
     protected final Point2D getLocationInPlotArea(final MouseEvent event) {
         final Point2D mouseLocationInScene = new Point2D(event.getSceneX(), event.getSceneY());
         final Chart chart = getChart();
-        if (!(chart instanceof XYChart)) {
+        if (chart == null) {
             return null;
         }
-        final XYChart xyChart = (XYChart) chart;
-        final double xInAxis = ((Node) xyChart.getXAxis()).sceneToLocal(mouseLocationInScene).getX();
-        final double yInAxis = ((Node) xyChart.getYAxis()).sceneToLocal(mouseLocationInScene).getY();
+        final double xInAxis = ((Node) chart.getXAxis()).sceneToLocal(mouseLocationInScene).getX();
+        final double yInAxis = ((Node) chart.getYAxis()).sceneToLocal(mouseLocationInScene).getY();
         return new Point2D(xInAxis, yInAxis);
     }
 
@@ -248,14 +246,13 @@ public abstract class ChartPlugin {
      */
     protected final Tuple<Number, Number> toDataPoint(final Axis yAxis, final Point2D displayPoint) {
         final Chart chart = getChart();
-        if (!(chart instanceof XYChart)) {
+        if (chart == null) {
             if (LOGGER.isWarnEnabled()) {
                 LOGGER.atWarn().addArgument(chart).log("chart '{}' is not of type XYChart returning null");
             }
             return null;
         }
-        final XYChart xyChart = (XYChart) chart;
-        return new Tuple<>(xyChart.getXAxis().getValueForDisplay(displayPoint.getX()),
+        return new Tuple<>(chart.getXAxis().getValueForDisplay(displayPoint.getX()),
                 yAxis.getValueForDisplay(displayPoint.getY()));
     }
 
@@ -268,6 +265,6 @@ public abstract class ChartPlugin {
      * @return corresponding display point within the plot area
      */
     protected final Point2D toDisplayPoint(final Axis yAxis, final double x, final double y) {
-        return new Point2D(((XYChart) getChart()).getXAxis().getDisplayPosition(x), yAxis.getDisplayPosition(y));
+        return new Point2D(getChart().getXAxis().getDisplayPosition(x), yAxis.getDisplayPosition(y));
     }
 }

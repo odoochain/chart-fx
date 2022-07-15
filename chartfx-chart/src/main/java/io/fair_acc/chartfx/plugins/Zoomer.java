@@ -7,6 +7,7 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 
+import io.fair_acc.chartfx.Chart;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
@@ -41,8 +42,6 @@ import org.kordamp.ikonli.javafx.FontIcon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.fair_acc.chartfx.Chart;
-import io.fair_acc.chartfx.XYChart;
 import io.fair_acc.chartfx.axes.Axis;
 import io.fair_acc.chartfx.axes.AxisMode;
 import io.fair_acc.chartfx.ui.ObservableDeque;
@@ -272,13 +271,13 @@ public class Zoomer extends ChartPlugin {
 
         chartProperty().addListener((change, o, n) -> {
             if (o != null) {
-                o.getToolBar().getChildren().remove(zoomButtons);
+                o.getToolBar().getItems().remove(zoomButtons);
                 o.getPlotArea().setBottom(null);
                 xRangeSlider.prefWidthProperty().unbind();
             }
             if (n != null) {
                 if (isAddButtonsToToolBar()) {
-                    n.getToolBar().getChildren().add(zoomButtons);
+                    n.getToolBar().getItems().add(zoomButtons);
                 }
                 /* always create the slider, even if not visible at first */
                 final ZoomRangeSlider slider = new ZoomRangeSlider(n);
@@ -841,10 +840,9 @@ public class Zoomer extends ChartPlugin {
     }
 
     private void panChart(final Chart chart, final Point2D mouseLocation) {
-        if (!(chart instanceof XYChart)) {
+        if (chart == null) {
             return;
         }
-
         final double oldMouseX = previousMouseLocation.getX();
         final double oldMouseY = previousMouseLocation.getY();
         final double newMouseX = mouseLocation.getX();
@@ -1331,9 +1329,9 @@ public class Zoomer extends ChartPlugin {
                     return;
                 }
                 if (Boolean.TRUE.equals(n)) {
-                    chartLocal.getToolBar().getChildren().add(zoomButtons);
+                    chartLocal.getToolBar().getItems().add(zoomButtons);
                 } else {
-                    chartLocal.getToolBar().getChildren().remove(zoomButtons);
+                    chartLocal.getToolBar().getItems().remove(zoomButtons);
                 }
             });
 

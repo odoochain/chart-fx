@@ -6,13 +6,13 @@ import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import io.fair_acc.chartfx.Chart;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
-import io.fair_acc.chartfx.XYChart;
 import io.fair_acc.chartfx.axes.spi.DefaultNumericAxis;
 import io.fair_acc.chartfx.plugins.EditAxis;
 import io.fair_acc.chartfx.plugins.ParameterMeasurements;
@@ -101,7 +101,8 @@ public class Histogram2DimSample extends Application {
         xAxis1.setAutoRanging(true);
         xAxis1.setSide(Side.TOP);
 
-        final XYChart chart = new XYChart(xAxis, yAxis);
+        final Chart chart = new Chart();
+        chart.getAxes().addAll(xAxis, yAxis);
         chart.setAnimated(false);
 
         final ContourDataSetRenderer heatMap = new ContourDataSetRenderer();

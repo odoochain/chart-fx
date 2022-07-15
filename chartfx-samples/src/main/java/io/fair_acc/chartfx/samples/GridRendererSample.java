@@ -1,5 +1,6 @@
 package io.fair_acc.chartfx.samples;
 
+import io.fair_acc.chartfx.Chart;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
@@ -8,7 +9,6 @@ import javafx.scene.layout.FlowPane;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 
-import io.fair_acc.chartfx.XYChart;
 import io.fair_acc.chartfx.axes.spi.DefaultNumericAxis;
 
 public class GridRendererSample extends Application {
@@ -17,11 +17,13 @@ public class GridRendererSample extends Application {
         final FlowPane root = new FlowPane();
         root.setAlignment(Pos.CENTER);
 
-        final XYChart xyChart1 = new XYChart(new DefaultNumericAxis("x-Axis 1", 0, 100, 10),
+        final Chart xyChart1 = new Chart();
+        xyChart1.getAxes().addAll(new DefaultNumericAxis("x-Axis 1", 0, 100, 10),
                 new DefaultNumericAxis("y-Axis 1", 0, 100, 20));
         xyChart1.setPrefSize(600, 300);
 
-        final XYChart xyChart2 = new XYChart(new DefaultNumericAxis("x-Axis 2", 0, 100, 10),
+        final Chart xyChart2 = new Chart();
+        xyChart2.getAxes().addAll(new DefaultNumericAxis("x-Axis 2", 0, 100, 10),
                 new DefaultNumericAxis("y-Axis 2", 0, 100, 20));
         xyChart2.setPrefSize(600, 300);
         xyChart2.getGridRenderer().getHorizontalMinorGrid().setVisible(true);
@@ -35,7 +37,8 @@ public class GridRendererSample extends Application {
         //        xyChart2.getGridRenderer().getHorizontalMajorGrid().setStyle("-fx-stroke: blue;-fx-stroke-width:4;");
         //        xyChart2.getGridRenderer().getVerticalMajorGrid().setStyle("-fx-stroke: darkblue");
 
-        final XYChart xyChart3 = new XYChart(new DefaultNumericAxis("x-Axis 3", 0, 100, 10),
+        final Chart xyChart3 = new Chart();
+        xyChart3.getAxes().addAll(new DefaultNumericAxis("x-Axis 3", 0, 100, 10),
                 new DefaultNumericAxis("y-Axis 3", 0, 100, 20));
         xyChart3.setPrefSize(600, 300);
         xyChart3.getGridRenderer().getHorizontalMinorGrid().setVisible(true);
@@ -45,7 +48,8 @@ public class GridRendererSample extends Application {
         xyChart3.getGridRenderer().getHorizontalMajorGrid().setStrokeWidth(1);
         xyChart3.getGridRenderer().getVerticalMajorGrid().setStrokeWidth(1);
 
-        final XYChart xyChart4 = new XYChart(new DefaultNumericAxis("x-Axis 4", 0, 100, 10),
+        final Chart xyChart4 = new Chart();
+        xyChart4.getAxes().addAll(new DefaultNumericAxis("x-Axis 4", 0, 100, 10),
                 new DefaultNumericAxis("y-Axis 4", 0, 100, 20));
         xyChart4.setPrefSize(600, 300);
         xyChart4.getGridRenderer().getHorizontalMajorGrid().getStrokeDashArray().setAll(15.0,

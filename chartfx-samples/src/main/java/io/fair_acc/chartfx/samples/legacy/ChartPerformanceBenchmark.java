@@ -3,6 +3,7 @@ package io.fair_acc.chartfx.samples.legacy;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import io.fair_acc.chartfx.Chart;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
@@ -18,7 +19,6 @@ import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.fair_acc.chartfx.XYChart;
 import io.fair_acc.chartfx.axes.spi.DefaultNumericAxis;
 import io.fair_acc.chartfx.plugins.EditAxis;
 import io.fair_acc.chartfx.plugins.Panner;
@@ -72,7 +72,7 @@ public class ChartPerformanceBenchmark extends AbstractTestApplication {
     public ChartPerformanceBenchmark() {
     }
 
-    public XYChart getResultChart() {
+    public Chart getResultChart() {
         final DefaultNumericAxis xAxis = new DefaultNumericAxis();
         xAxis.setName("number of samples");
         xAxis.setForceZeroInRange(true);
@@ -88,7 +88,8 @@ public class ChartPerformanceBenchmark extends AbstractTestApplication {
         yAxis1.setAutoRangeRounding(true);
         yAxis1.setAutoRangePadding(0.05);
 
-        final XYChart chart = new XYChart(xAxis, yAxis1);
+        final Chart chart = new Chart();
+        chart.getAxes().addAll(xAxis, yAxis1);
         chart.legendVisibleProperty().set(true);
         chart.setAnimated(false);
         chart.setLegendVisible(true);

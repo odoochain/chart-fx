@@ -5,7 +5,7 @@ import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
-import io.fair_acc.chartfx.XYChart;
+import io.fair_acc.chartfx.Chart;
 import io.fair_acc.chartfx.axes.spi.DefaultNumericAxis;
 import io.fair_acc.chartfx.plugins.EditAxis;
 import io.fair_acc.chartfx.plugins.Zoomer;
@@ -29,7 +29,8 @@ public class LimitsSample extends Application {
     public void start(final Stage primaryStage) {
         var xAxis = new DefaultNumericAxis("time", "s");
         var yAxis = new DefaultNumericAxis("y-value", "a.u.");
-        var chart = new XYChart(xAxis, yAxis);
+        var chart = new Chart();
+        chart.getAxes().addAll(xAxis, yAxis);
         final HiddenSidesPane hiddenSidePane = chart.getPlotArea();
         hiddenSidePane.setTriggerDistance(0);
 

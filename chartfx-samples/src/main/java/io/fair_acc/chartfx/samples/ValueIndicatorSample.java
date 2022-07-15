@@ -2,13 +2,13 @@ package io.fair_acc.chartfx.samples;
 
 import java.util.Objects;
 
+import io.fair_acc.chartfx.Chart;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
-import io.fair_acc.chartfx.XYChart;
 import io.fair_acc.chartfx.axes.spi.DefaultNumericAxis;
 import io.fair_acc.chartfx.plugins.XValueIndicator;
 import io.fair_acc.dataset.spi.DoubleDataSet;
@@ -25,7 +25,8 @@ public class ValueIndicatorSample extends Application {
 
         DefaultNumericAxis xAxis = new DefaultNumericAxis();
         DefaultNumericAxis yAxis = new DefaultNumericAxis();
-        final XYChart chart = new XYChart(xAxis, yAxis);
+        final Chart chart = new Chart();
+        chart.getAxes().addAll(xAxis, yAxis);
         root.getChildren().add(chart);
 
         final DoubleDataSet dataSet1 = new DoubleDataSet("data set #1");

@@ -1,14 +1,9 @@
 package io.fair_acc.chartfx.samples;
 
-import javafx.application.Application;
-import javafx.application.Platform;
-import javafx.scene.Scene;
-import javafx.stage.Stage;
-
+import io.fair_acc.chartfx.Chart;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.fair_acc.chartfx.XYChart;
 import io.fair_acc.chartfx.axes.spi.DefaultNumericAxis;
 import io.fair_acc.chartfx.plugins.DataPointTooltip;
 import io.fair_acc.chartfx.plugins.EditAxis;
@@ -16,6 +11,10 @@ import io.fair_acc.chartfx.plugins.Zoomer;
 import io.fair_acc.chartfx.renderer.spi.ErrorDataSetRenderer;
 import io.fair_acc.dataset.spi.DoubleDataSet;
 import io.fair_acc.dataset.spi.DoubleErrorDataSet;
+import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
 
 /**
  * Test/demo that explicitly allows to draw NaN values in DataSets as well as custom dash-based line-styling
@@ -34,7 +33,8 @@ public class NotANumberSample extends Application {
     public void start(final Stage primaryStage) {
         LOGGER.atInfo().addArgument(NotANumberSample.class.getSimpleName()).log("launching sample {}");
 
-        final XYChart chart = new XYChart(new DefaultNumericAxis("x-axis"), new DefaultNumericAxis("y-axis"));
+        final Chart chart = new Chart();
+        chart.getAxes().addAll(new DefaultNumericAxis("x-axis"), new DefaultNumericAxis("y-axis"));
         chart.getPlugins().add(new Zoomer()); // standard plugin, useful for most cases
         chart.getPlugins().add(new EditAxis());
         chart.getPlugins().add(new DataPointTooltip());

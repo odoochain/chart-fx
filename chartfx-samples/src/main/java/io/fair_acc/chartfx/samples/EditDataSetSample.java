@@ -3,13 +3,13 @@ package io.fair_acc.chartfx.samples;
 import static io.fair_acc.dataset.DataSet.DIM_X;
 import static io.fair_acc.dataset.DataSet.DIM_Y;
 
+import io.fair_acc.chartfx.Chart;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
-import io.fair_acc.chartfx.XYChart;
 import io.fair_acc.chartfx.axes.spi.DefaultNumericAxis;
 import io.fair_acc.chartfx.plugins.DataPointTooltip;
 import io.fair_acc.chartfx.plugins.EditAxis;
@@ -34,7 +34,8 @@ public class EditDataSetSample extends Application {
     public void start(final Stage primaryStage) {
         final StackPane root = new StackPane();
 
-        final XYChart chart = new XYChart(new DefaultNumericAxis(), new DefaultNumericAxis());
+        final Chart chart = new Chart();
+        chart.getAxes().addAll(new DefaultNumericAxis(), new DefaultNumericAxis());
         chart.getPlugins().add(new Zoomer());
         chart.getPlugins().add(new EditAxis());
         chart.getPlugins().add(new EditDataSet());

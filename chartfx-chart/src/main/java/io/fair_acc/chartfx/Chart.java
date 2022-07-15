@@ -1,7 +1,9 @@
 package io.fair_acc.chartfx;
 
+import java.security.InvalidParameterException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javafx.animation.Animation;
@@ -11,9 +13,9 @@ import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
 import javafx.beans.binding.Bindings;
-import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.*;
 import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
@@ -24,8 +26,10 @@ import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Control;
 import javafx.scene.control.Label;
+import javafx.scene.control.ToolBar;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Paint;
 import javafx.stage.Window;
@@ -40,12 +44,14 @@ import io.fair_acc.chartfx.axes.spi.DefaultNumericAxis;
 import io.fair_acc.chartfx.legend.Legend;
 import io.fair_acc.chartfx.legend.spi.DefaultLegend;
 import io.fair_acc.chartfx.plugins.ChartPlugin;
+import io.fair_acc.chartfx.renderer.PolarTickStep;
 import io.fair_acc.chartfx.renderer.Renderer;
+import io.fair_acc.chartfx.renderer.spi.ErrorDataSetRenderer;
+import io.fair_acc.chartfx.renderer.spi.GridRenderer;
 import io.fair_acc.chartfx.renderer.spi.LabelledMarkerRenderer;
 import io.fair_acc.chartfx.ui.ChartLayoutAnimator;
 import io.fair_acc.chartfx.ui.HiddenSidesPane;
 import io.fair_acc.chartfx.ui.ResizableCanvas;
-import io.fair_acc.chartfx.ui.ToolBarFlowPane;
 import io.fair_acc.chartfx.ui.css.CssPropertyFactory;
 import io.fair_acc.chartfx.ui.geometry.Corner;
 import io.fair_acc.chartfx.ui.geometry.Side;
@@ -53,35 +59,26 @@ import io.fair_acc.chartfx.utils.FXUtils;
 import io.fair_acc.dataset.DataSet;
 import io.fair_acc.dataset.event.EventListener;
 import io.fair_acc.dataset.utils.AssertUtils;
-import io.fair_acc.dataset.utils.NoDuplicatesList;
 import io.fair_acc.dataset.utils.ProcessingProfiler;
 
 /**
- * Chart designed primarily to display data traces using DataSet interfaces which are more flexible and efficient than
- * the observable lists used by XYChart. Brief history: original design inspired by Oracle, extended by CERN (i.e.
- * plugin concept/zoomer), modified to mitigate JavaFX performance issues and extended renderer
- * concept/canvas-concept/interfaces/+more plugins by GSI. Refactored and re-write in 2018 to make it compatible with
- * GPLv3 which -- in the spirit of 'Ship of Theseus' -- makes it de-facto a new development. Contributions, bug-fixes,
- * and modifications are welcome. Hope you find this library useful and enjoy!
- *
- * @author original conceptual design by Oracle (2010, 2014)
- * @author hbraeun, rstein, major refactoring, re-implementation and re-design
+ * Reimplementation of the Chart class with new layout and rendering paradigm
  */
-public abstract class Chart extends HiddenSidesPane implements Observable {
+public class Chart extends Region implements Observable{
+    // old Chart.java
     private static final Logger LOGGER = LoggerFactory.getLogger(Chart.class);
     private static final String CHART_CSS = Objects.requireNonNull(Chart.class.getResource("chart.css")).toExternalForm();
-    private static final CssPropertyFactory<Chart> CSS = new CssPropertyFactory<>(Control.getClassCssMetaData());
+    private static final CssPropertyFactory<Chart> CSS = new CssPropertyFactory<>(Region.getClassCssMetaData());
     private static final int DEFAULT_TRIGGER_DISTANCE = 50;
+    protected static final int BURST_LIMIT_MS = 15;
     protected static final boolean DEBUG = false; // for more verbose debugging
 
-    protected BooleanBinding showingBinding;
     protected final BooleanProperty showing = new SimpleBooleanProperty(this, "showing", false);
     protected final ChangeListener<? super Boolean> showingListener = (ch2, o, n) -> showing.set(n);
     /**
      * When true any data changes will be animated.
      */
     private final BooleanProperty animated = new SimpleBooleanProperty(this, "animated", true);
-    // TODO: Check whether 'this' or chart contents need to be added
     /**
      * Animator for animating stuff on the chart
      */
@@ -95,31 +92,35 @@ public abstract class Chart extends HiddenSidesPane implements Observable {
         requestLayout();
     });
 
-    // isCanvasChangeRequested is a recursion guard to update canvas only once
+    /**
+     * isCanvasChangeRequested is a recursion guard to update canvas only once
+     */
     protected boolean isCanvasChangeRequested;
-    // layoutOngoing is a recursion guard to update canvas only once
+    /**
+     * layoutOngoing is a recursion guard to update canvas only once
+     */
     protected boolean layoutOngoing;
-    protected final ObservableList<Axis> axesList = FXCollections.observableList(new NoDuplicatesList<>());
+    // protected final ObservableList<Axis> axesList = FXCollections.observableList(new NoDuplicatesList<>());
     private final Map<ChartPlugin, Group> pluginGroups = new ConcurrentHashMap<>();
-    private final ObservableList<ChartPlugin> plugins = FXCollections.observableList(new LinkedList<>());
+    // private final ObservableList<ChartPlugin> plugins = FXCollections.observableList(new LinkedList<>());
     private final ObservableList<DataSet> datasets = FXCollections.observableArrayList();
     protected final ObservableList<DataSet> allDataSets = FXCollections.observableArrayList();
     protected final List<InvalidationListener> listeners = new ArrayList<>();
     protected final BooleanProperty autoNotification = new SimpleBooleanProperty(this, "autoNotification", true);
-    private final ObservableList<Renderer> renderers = FXCollections.observableArrayList();
+    public final ObservableList<Renderer> renderers = FXCollections.observableArrayList();
     {
         getRenderers().addListener(this::rendererChanged);
     }
 
-    protected final ResizableCanvas canvas = new ResizableCanvas();
+    // protected final ResizableCanvas canvas = new ResizableCanvas();
     // contains axes (left, bottom, top, right) panes & HiddenSidePane with the
     // Canvas at it's centre
-    protected final GridPane axesAndCanvasPane = new GridPane();
+    // protected final GridPane axesAndCanvasPane = new GridPane();
     protected final Group pluginsArea = Chart.createChildGroup();
 
     protected boolean isAxesUpdate;
     // containing the plugin handler/modifier
-    protected final ToolBarFlowPane toolBar = new ToolBarFlowPane(this);
+    protected final ToolBar toolBar = new ToolBar();
     protected final BooleanProperty toolBarPinned = new SimpleBooleanProperty(this, "toolBarPinned", false);
 
     protected final HiddenSidesPane hiddenPane = new HiddenSidesPane();
@@ -138,17 +139,17 @@ public abstract class Chart extends HiddenSidesPane implements Observable {
             titleLegendCorner.put(corner, new StackPane()); // NOPMD - default init
         }
         for (final Side side : Side.values()) {
-            titleLegendPane.put(side, side.isVertical() ? new ChartHBox() : new ChartVBox()); // NOPMD - default init
-            axesPane.put(side, side.isVertical() ? new ChartHBox() : new ChartVBox()); // NOPMD - default init
+            titleLegendPane.put(side, side.isVertical() ? new Chart.ChartHBox() : new Chart.ChartVBox()); // NOPMD - default init
+            axesPane.put(side, side.isVertical() ? new Chart.ChartHBox() : new Chart.ChartVBox()); // NOPMD - default init
             if (side == Side.CENTER_HOR || side == Side.CENTER_VER) {
                 axesPane.get(side).setMouseTransparent(true);
             }
 
-            measurementBar.put(side, side.isVertical() ? new ChartHBox() : new ChartVBox()); // NOPMD - default
+            measurementBar.put(side, side.isVertical() ? new Chart.ChartHBox() : new Chart.ChartVBox()); // NOPMD - default
         }
     }
 
-    private final EventListener axisChangeListener = obs -> FXUtils.runFX(() -> axesInvalidated(obs));
+    private final io.fair_acc.dataset.event.EventListener axisChangeListener = obs -> FXUtils.runFX(() -> axesInvalidated(obs));
     protected final ListChangeListener<Axis> axesChangeListenerLocal = this::axesChangedLocal;
     protected final ListChangeListener<Axis> axesChangeListener = this::axesChanged;
     protected final ListChangeListener<DataSet> datasetChangeListener = this::datasetsChanged;
@@ -181,12 +182,6 @@ public abstract class Chart extends HiddenSidesPane implements Observable {
         // add listener
         newScene.windowProperty().addListener(windowPropertyListener);
     };
-    {
-        getDatasets().addListener(datasetChangeListener);
-        getAxes().addListener(axesChangeListener);
-        // update listener to propagate axes changes to chart changes
-        getAxes().addListener(axesChangeListenerLocal);
-    }
 
     protected final Label titleLabel = new Label();
 
@@ -285,230 +280,54 @@ public abstract class Chart extends HiddenSidesPane implements Observable {
     private final StyleableObjectProperty<Side> toolBarSide = CSS.createObjectProperty(this, "toolBarSide", Side.TOP, false,
             StyleConverter.getEnumConverter(Side.class), (oldVal, newVal) -> {
                 AssertUtils.notNull("Side must not be null", newVal);
-                // remove tool bar from potential other chart side pane locations
-                Chart.this.setTop(null);
-                Chart.this.setBottom(null);
-                Chart.this.setLeft(null);
-                Chart.this.setRight(null);
-                switch (newVal) {
-                case LEFT:
-                    getToolBar().setOrientation(Orientation.VERTICAL);
-                    Chart.this.setLeft(getToolBar());
-                    break;
-                case RIGHT:
-                    getToolBar().setOrientation(Orientation.VERTICAL);
-                    Chart.this.setRight(getToolBar());
-                    break;
-                case BOTTOM:
-                    getToolBar().setOrientation(Orientation.HORIZONTAL);
-                    Chart.this.setBottom(getToolBar());
-                    break;
-                case TOP:
-                default:
-                    getToolBar().setOrientation(Orientation.HORIZONTAL);
-                    Chart.this.setTop(getToolBar());
-                    break;
-                }
+                // // remove tool bar from potential other chart side pane locations
+                // NewChart.this.setTop(null);
+                // NewChart.this.setBottom(null);
+                // NewChart.this.setLeft(null);
+                // NewChart.this.setRight(null);
+                // switch (newVal) {
+                //     case LEFT:
+                //         getToolBar().setOrientation(Orientation.VERTICAL);
+                //         Chart.this.setLeft(getToolBar());
+                //         break;
+                //     case RIGHT:
+                //         getToolBar().setOrientation(Orientation.VERTICAL);
+                //         Chart.this.setRight(getToolBar());
+                //         break;
+                //     case BOTTOM:
+                //         getToolBar().setOrientation(Orientation.HORIZONTAL);
+                //         Chart.this.setBottom(getToolBar());
+                //         break;
+                //     case TOP:
+                //     default:
+                //         getToolBar().setOrientation(Orientation.HORIZONTAL);
+                //         Chart.this.setTop(getToolBar());
+                //         break;
+                // }
                 return (newVal);
             }, this::requestLayout);
 
-    /**
-     * Creates a new default Chart instance.
-     *
-     * @param axes axes to be added to the chart
-     */
-    public Chart(Axis... axes) {
-        for (int dim = 0; dim < axes.length; dim++) {
-            final Axis axis = axes[dim];
-            if (!(axis instanceof AbstractAxis)) {
-                continue;
-            }
-            final AbstractAxis abstractAxis = (AbstractAxis) axis;
-            if (abstractAxis.getDimIndex() < 0) {
-                abstractAxis.setDimIndex(dim);
-            }
-        }
-
-        setTriggerDistance(Chart.DEFAULT_TRIGGER_DISTANCE);
-        setMinSize(0, 0);
-        setPrefSize(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE);
-        setMaxSize(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE);
-        setPadding(Insets.EMPTY);
-
-        // populate SidesPane with default container
-        final BorderPane localBorderPane = new BorderPane();
-        axesAndCanvasPane.setPadding(Insets.EMPTY);
-        localBorderPane.setCenter(new StackPane(plotBackground, axesAndCanvasPane, plotForeGround));
-        plotBackground.toBack();
-        plotForeGround.toFront();
-        plotForeGround.setMouseTransparent(true);
-
-        for (final Side side : Side.values()) {
-            BorderPane.setAlignment(getMeasurementBar(side), Pos.CENTER);
-        }
-        localBorderPane.setTop(getMeasurementBar(Side.TOP));
-        localBorderPane.setBottom(getMeasurementBar(Side.BOTTOM));
-        localBorderPane.setLeft(getMeasurementBar(Side.LEFT));
-        localBorderPane.setRight(getMeasurementBar(Side.RIGHT));
-
-        super.setContent(localBorderPane);
-
-        // hiddenPane.setTriggerDistance(DEFAULT_TRIGGER_DISTANCE);
-        hiddenPane.triggerDistanceProperty().bindBidirectional(triggerDistanceProperty());
-        hiddenPane.setAnimationDelay(Duration.millis(500));
-        // hiddenPane.setMouseTransparent(true);
-        hiddenPane.setPickOnBounds(false);
-
-        final StackPane stackPane = new StackPane(getCanvas(), getCanvasForeground(), pluginsArea);
-        hiddenPane.setContent(stackPane);
-
-        // alt: canvas resize (default JavaFX Canvas does not automatically
-        // resize to pref width/height according to parent constraints
-        // canvas.widthProperty().bind(stackPane.widthProperty());
-        // canvas.heightProperty().bind(stackPane.heightProperty());
-        getCanvasForeground().setManaged(false);
-        final ChangeListener<Number> canvasSizeChangeListener = (ch, o, n) -> {
-            final double width = getCanvas().getWidth();
-            final double height = getCanvas().getHeight();
-
-            if (getCanvasForeground().getWidth() != width || getCanvasForeground().getHeight() != height) {
-                // workaround needed so that pane within pane does not trigger
-                // recursions w.r.t. repainting
-                getCanvasForeground().resize(width, height);
-            }
-
-            if (!isCanvasChangeRequested) {
-                isCanvasChangeRequested = true;
-                Platform.runLater(() -> {
-                    this.layoutChildren();
-                    isCanvasChangeRequested = false;
-                });
-            }
-        };
-        canvas.widthProperty().addListener(canvasSizeChangeListener);
-        canvas.heightProperty().addListener(canvasSizeChangeListener);
-
-        getCanvasForeground().setMouseTransparent(true);
-        getCanvas().toFront();
-        getCanvasForeground().toFront();
-        pluginsArea.toFront();
-
-        hiddenPane.getStyleClass().setAll("plot-content");
-
-        plotBackground.getStyleClass().setAll("chart-plot-background");
-
-        if (!canvas.isCache()) {
-            canvas.setCache(true);
-            canvas.setCacheHint(CacheHint.QUALITY);
-        }
-
-        axesAndCanvasPane.add(hiddenPane, 2, 2); // centre-centre
-        canvas.setStyle("-fx-background-color: rgba(200, 250, 200, 0.5);");
-
-        final int rowSpan1 = 1;
-        final int colSpan1 = 1;
-        final int rowSpan3 = 3;
-        final int colSpan3 = 3;
-
-        // outer title/legend/parameter pane border (outer rim)
-        axesAndCanvasPane.add(getTitleLegendPane(Side.LEFT), 0, 1, colSpan1, rowSpan3); // left-centre
-        axesAndCanvasPane.add(getTitleLegendPane(Side.RIGHT), 4, 1, colSpan1, rowSpan3); // centre-centre
-        axesAndCanvasPane.add(getTitleLegendPane(Side.TOP), 1, 0, colSpan3, rowSpan1); // centre-top
-        axesAndCanvasPane.add(getTitleLegendPane(Side.BOTTOM), 1, 4, colSpan3, rowSpan1); // centre-bottom
-
-        // add default axis panes (inner rim)
-        axesAndCanvasPane.add(getAxesPane(Side.LEFT), 1, 2); // left-centre
-        axesAndCanvasPane.add(getAxesPane(Side.RIGHT), 3, 2); // centre-centre
-        axesAndCanvasPane.add(getAxesPane(Side.TOP), 2, 1); // centre-top
-        axesAndCanvasPane.add(getAxesPane(Side.BOTTOM), 2, 3); // centre-bottom
-
-        final Pane pane = getAxesPane(Side.CENTER_VER);
-        GridPane.setFillHeight(pane, true);
-        GridPane.setFillWidth(pane, true);
-
-        axesAndCanvasPane.add(getAxesPane(Side.CENTER_VER), 2, 2); // centre-vertical
-        axesAndCanvasPane.add(getAxesPane(Side.CENTER_HOR), 2, 2); // centre-vertical
-
-        // add default corner BorderPane fields -- inner rim
-        axesAndCanvasPane.add(getAxesCornerPane(Corner.TOP_LEFT), 1, 1);
-        axesAndCanvasPane.add(getAxesCornerPane(Corner.TOP_RIGHT), 3, 1);
-        axesAndCanvasPane.add(getAxesCornerPane(Corner.BOTTOM_LEFT), 1, 3);
-        axesAndCanvasPane.add(getAxesCornerPane(Corner.BOTTOM_RIGHT), 3, 3);
-
-        // add default corner BorderPane fields -- outer rim
-        axesAndCanvasPane.add(getTitleLegendCornerPane(Corner.TOP_LEFT), 0, 0);
-        axesAndCanvasPane.add(getTitleLegendCornerPane(Corner.TOP_RIGHT), 4, 0);
-        axesAndCanvasPane.add(getTitleLegendCornerPane(Corner.BOTTOM_LEFT), 0, 4);
-        axesAndCanvasPane.add(getTitleLegendCornerPane(Corner.BOTTOM_RIGHT), 4, 4);
-
-        // set row/colum constraints for grid pane
-        for (int i = 0; i < 4; i++) {
-            final RowConstraints rowConstraint = new RowConstraints();
-            if (i == 2) {
-                rowConstraint.setVgrow(Priority.ALWAYS);
-                rowConstraint.setFillHeight(true);
-            }
-            axesAndCanvasPane.getRowConstraints().add(i, rowConstraint);
-
-            final ColumnConstraints colConstraint = new ColumnConstraints();
-            if (i == 2) {
-                colConstraint.setHgrow(Priority.ALWAYS);
-                colConstraint.setFillWidth(true);
-            }
-            axesAndCanvasPane.getColumnConstraints().add(i, colConstraint);
-        }
-
-        // add plugin handling and listeners
-        getPlugins().addListener(pluginsChangedListener);
-
-        // add default chart content ie. ToolBar and Legend
-        // can be repositioned via setToolBarSide(...) and setLegendSide(...)
-        titleLabel.setAlignment(Pos.CENTER);
-        HBox.setHgrow(titleLabel, Priority.ALWAYS);
-        VBox.setVgrow(titleLabel, Priority.ALWAYS);
-        titleLabel.focusTraversableProperty().bind(Platform.accessibilityActiveProperty());
-
-        // register listener in tool bar FlowPane
-        toolBar.registerListener();
-        setTop(getToolBar());
-
-        getTitleLegendPane(Side.TOP).getChildren().add(titleLabel);
-
-        legendVisibleProperty().addListener((ch, old, visible) -> {
-            if (getLegend() == null) {
-                return;
-            }
-            getLegend().getNode().setVisible(visible);
-            if (Boolean.TRUE.equals(visible)) {
-                if (!getTitleLegendPane(getLegendSide()).getChildren().contains(getLegend().getNode())) {
-                    getTitleLegendPane(getLegendSide()).getChildren().add(getLegend().getNode());
-                }
-            } else {
-                getTitleLegendPane(getLegendSide()).getChildren().remove(getLegend().getNode());
-            }
-        });
-
-        // set CSS stuff
-        titleLabel.getStyleClass().add("chart-title");
-        getStyleClass().add("chart");
-        axesAndCanvasPane.getStyleClass().add("chart-content");
-
-        registerShowingListener(); // NOPMD - unlikely but allowed override
-    }
+    protected final BooleanProperty polarPlot = new SimpleBooleanProperty(this, "polarPlot", false);
+    private final ObjectProperty<PolarTickStep> polarStepSize = new SimpleObjectProperty<>(PolarTickStep.THIRTY);
+    private final GridRenderer gridRenderer = new GridRenderer();
+    protected final ChangeListener<? super Boolean> gridLineVisibilitychange = (ob, o, n) -> requestLayout();
+    private long lastCanvasUpdate;
+    private boolean callCanvasUpdateLater;
+    private final ChangeListener<Side> axisSideChangeListener = this::axisSideChanged;
 
     @Override
     public String getUserAgentStylesheet() {
         return CHART_CSS;
     }
 
-    @Override
+    // @Override
     public void addListener(final InvalidationListener listener) {
         Objects.requireNonNull(listener, "InvalidationListener must not be null");
         listeners.add(listener);
     }
 
     /**
-     * Play a animation involving the given keyframes. On every frame of the animation the chart will be relayed out
+     * Play an animation involving the given keyframes. On every frame of the animation the chart will be relayed out
      *
      * @param keyFrames Array of KeyFrames to play
      */
@@ -561,12 +380,12 @@ public abstract class Chart extends HiddenSidesPane implements Observable {
     }
 
     public ObservableList<Axis> getAxes() {
-        return axesList;
+        return axes;
     }
 
-    public GridPane getAxesAndCanvasPane() {
-        return axesAndCanvasPane;
-    }
+    // public GridPane getAxesAndCanvasPane() {
+    //     return axesAndCanvasPane;
+    // }
 
     public final StackPane getAxesCornerPane(final Corner corner) {
         return axesCorner.get(corner);
@@ -691,13 +510,13 @@ public abstract class Chart extends HiddenSidesPane implements Observable {
         return titleSide.get();
     }
 
-    public final FlowPane getToolBar() {
+    public final ToolBar getToolBar() {
         return toolBar;
     }
 
-    public final ObjectProperty<Side> getToolBarSideProperty() {
-        return toolBarSide;
-    }
+    // public final ObjectProperty<Side> getToolBarSideProperty() {
+    //     return toolBarSide;
+    // }
 
     public final Side getToolBarSide() {
         return toolBarSideProperty().get();
@@ -731,45 +550,6 @@ public abstract class Chart extends HiddenSidesPane implements Observable {
         return toolBarPinned.get();
     }
 
-    @Override
-    public void layoutChildren() {
-        if (DEBUG && LOGGER.isDebugEnabled()) {
-            LOGGER.debug("chart layoutChildren() - pre");
-        }
-        if (layoutOngoing) {
-            return;
-        }
-        if (DEBUG && LOGGER.isDebugEnabled()) {
-            LOGGER.debug("chart layoutChildren() - execute");
-        }
-        final long start = ProcessingProfiler.getTimeStamp();
-        layoutOngoing = true;
-
-        // update axes range first because this may change the overall layout
-        updateAxisRange();
-        ProcessingProfiler.getTimeDiff(start, "updateAxisRange()");
-
-        // update chart parent according to possible size changes
-        super.layoutChildren();
-
-        // request re-layout of canvas
-        redrawCanvas();
-
-        ProcessingProfiler.getTimeDiff(start, "updateCanvas()");
-
-        // request re-layout of plugins
-        layoutPluginsChildren();
-        ProcessingProfiler.getTimeDiff(start, "layoutPluginsChildren()");
-
-        ProcessingProfiler.getTimeDiff(start, "end");
-
-        layoutOngoing = false;
-        if (DEBUG && LOGGER.isDebugEnabled()) {
-            LOGGER.debug("chart layoutChildren() - done");
-        }
-        fireInvalidated();
-    }
-
     public final ObjectProperty<Legend> legendProperty() {
         return legend;
     }
@@ -800,7 +580,7 @@ public abstract class Chart extends HiddenSidesPane implements Observable {
         return false;
     }
 
-    @Override
+    // @Override
     public void removeListener(final InvalidationListener listener) {
         listeners.remove(listener);
     }
@@ -902,14 +682,6 @@ public abstract class Chart extends HiddenSidesPane implements Observable {
         return new Point2D(xCoord - plotAreaBounds.getMinX(), yCoord - plotAreaBounds.getMinY());
     }
 
-    // -------------- METHODS
-    // ------------------------------------------------------------------------------------------
-
-    /**
-     * update axes ranges (if necessary). This is supposed to be implemented in derived classes
-     */
-    public abstract void updateAxisRange();
-
     /**
      * Play the given animation on every frame of the animation the chart will be relayed out until the animation
      * finishes. So to add a animation to a chart, create a animation on data model, during layoutChartContent() map
@@ -920,14 +692,6 @@ public abstract class Chart extends HiddenSidesPane implements Observable {
     protected void animate(final Animation animation) {
         animator.animate(animation);
     }
-
-    /**
-     * add Chart specific axis handling (ie. placement around charts, add new DefaultNumericAxis if one is missing,
-     * etc.)
-     *
-     * @param change the new axis change that is being added
-     */
-    protected abstract void axesChanged(final ListChangeListener.Change<? extends Axis> change);
 
     /**
      * add Chart specific axis handling (ie. placement around charts, add new DefaultNumericAxis if one is missing,
@@ -1021,7 +785,7 @@ public abstract class Chart extends HiddenSidesPane implements Observable {
      * @since JavaFX 8.0
      */
     @Override
-    protected List<CssMetaData<? extends Styleable, ?>> getControlCssMetaData() {
+    public List<CssMetaData<? extends Styleable, ?>> getCssMetaData() {
         return Chart.getClassCssMetaData();
     }
 
@@ -1054,11 +818,6 @@ public abstract class Chart extends HiddenSidesPane implements Observable {
         }
         updatePluginsArea();
     }
-
-    /**
-     * (re-)draw canvas (if necessary). This is supposed to be implemented in derived classes
-     */
-    protected abstract void redrawCanvas();
 
     // -------------- LISTENER HANDLING
     // ------------------------------------------------------------------------------
@@ -1169,6 +928,697 @@ public abstract class Chart extends HiddenSidesPane implements Observable {
         public ChartVBox(final boolean fill) {
             this();
             setFillWidth(fill);
+        }
+    }
+
+    /**
+     * @return datasets attached to the chart and datasets attached to all renderers TODO: change to change listener
+     *         that add/remove datasets from a global observable list
+     */
+    public ObservableList<DataSet> getAllShownDatasets() {
+        final ObservableList<DataSet> ret = FXCollections.observableArrayList();
+        ret.addAll(getDatasets());
+        getRenderers().stream().filter(Renderer::showInLegend).forEach(renderer -> ret.addAll(renderer.getDatasets()));
+        return ret;
+    }
+
+    /**
+     * @return nomen est omen
+     */
+    public GridRenderer getGridRenderer() {
+        return gridRenderer;
+    }
+
+    public PolarTickStep getPolarStepSize() {
+        return polarStepSizeProperty().get();
+    }
+
+    /**
+     * Returns the x axis.
+     *
+     * @return x axis
+     */
+    public Axis getXAxis() {
+        return getFirstAxis(Orientation.HORIZONTAL);
+    }
+
+    /**
+     * Returns the y axis.
+     *
+     * @return y axis
+     */
+    public Axis getYAxis() {
+        return getFirstAxis(Orientation.VERTICAL);
+    }
+
+    /**
+     * Indicates whether horizontal grid lines are visible or not.
+     *
+     * @return horizontalGridLinesVisible property
+     */
+    public final BooleanProperty horizontalGridLinesVisibleProperty() {
+        return gridRenderer.horizontalGridLinesVisibleProperty();
+    }
+
+    /**
+     * Indicates whether horizontal grid lines are visible.
+     *
+     * @return {@code true} if horizontal grid lines are visible else {@code false}.
+     */
+    public final boolean isHorizontalGridLinesVisible() {
+        return horizontalGridLinesVisibleProperty().get();
+    }
+
+    /**
+     * whether renderer should use polar coordinates (x -&gt; interpreted as phi, y as radial coordinate)
+     *
+     * @return true if renderer is plotting in polar coordinates
+     */
+    public final boolean isPolarPlot() {
+        return polarPlotProperty().get();
+    }
+
+    /**
+     * Indicates whether vertical grid lines are visible.
+     *
+     * @return {@code true} if vertical grid lines are visible else {@code false}.
+     */
+    public final boolean isVerticalGridLinesVisible() {
+        return verticalGridLinesVisibleProperty().get();
+    }
+
+    /**
+     * Sets whether renderer should use polar coordinates (x -&gt; interpreted as phi, y as radial coordinate)
+     *
+     * @return true if renderer is plotting in polar coordinates
+     */
+    public final BooleanProperty polarPlotProperty() {
+        return polarPlot;
+    }
+
+    public ObjectProperty<PolarTickStep> polarStepSizeProperty() {
+        return polarStepSize;
+    }
+
+    /**
+     * Sets the value of the {@link #verticalGridLinesVisibleProperty()}.
+     *
+     * @param value {@code true} to make vertical lines visible
+     */
+    public final void setHorizontalGridLinesVisible(final boolean value) {
+        horizontalGridLinesVisibleProperty().set(value);
+    }
+
+    /**
+     * Sets whether renderer should use polar coordinates (x -&gt; interpreted as phi, y as radial coordinate)
+     *
+     * @param state true if renderer is parallelising sub-functionalities
+     * @return itself (fluent design)
+     */
+    public final Chart setPolarPlot(final boolean state) {
+        polarPlotProperty().set(state);
+        return this;
+    }
+
+    public void setPolarStepSize(final PolarTickStep step) {
+        polarStepSizeProperty().set(step);
+    }
+
+    /**
+     * Sets the value of the {@link #verticalGridLinesVisibleProperty()}.
+     *
+     * @param value {@code true} to make vertical lines visible
+     */
+    public final void setVerticalGridLinesVisible(final boolean value) {
+        verticalGridLinesVisibleProperty().set(value);
+    }
+
+    public void updateAxisRange() {
+        if (isDataEmpty()) {
+            return;
+        }
+
+        // lock datasets to prevent writes while updating the axes
+        ObservableList<DataSet> dataSets = this.getAllDatasets();
+        // check that all registered data sets have proper ranges defined
+        dataSets.parallelStream()
+                .forEach(dataset -> dataset.getAxisDescriptions().parallelStream().filter(axisD -> !axisD.isDefined()).forEach(axisDescription -> dataset.lock().writeLockGuard(() -> dataset.recomputeLimits(axisDescription.getDimIndex()))));
+
+        final ArrayDeque<DataSet> lockQueue = new ArrayDeque<>(dataSets);
+        recursiveLockGuard(lockQueue, () -> getAxes().forEach(chartAxis -> {
+            final List<DataSet> dataSetForAxis = getDataSetForAxis(chartAxis);
+            updateNumericAxis(chartAxis, dataSetForAxis);
+            // chartAxis.requestAxisLayout()
+        }));
+    }
+
+    protected void recursiveLockGuard(final Deque<DataSet> queue, final Runnable runnable) { // NOPMD
+        if (queue.isEmpty()) {
+            runnable.run();
+        } else {
+            queue.pop().lock().readLockGuard(() -> recursiveLockGuard(queue, runnable));
+        }
+    }
+
+    /**
+     * Indicates whether vertical grid lines are visible or not.
+     *
+     * @return verticalGridLinesVisible property
+     */
+    public final BooleanProperty verticalGridLinesVisibleProperty() {
+        return gridRenderer.verticalGridLinesVisibleProperty();
+    }
+
+    private boolean isDataEmpty() {
+        return getAllDatasets() == null || getAllDatasets().isEmpty();
+    }
+
+    /**
+     * add XYChart specific axis handling (ie. placement around charts, add new DefaultNumericAxis if one is missing,
+     * etc.)
+     *
+     * @param change the new axis change that is being added
+     */
+    protected void axesChanged(final ListChangeListener.Change<? extends Axis> change) {
+        while (change.next()) {
+            change.getRemoved().forEach(axis -> {
+                AssertUtils.notNull("to be removed axis is null", axis);
+                // check if axis is associated with an existing renderer, if yes
+                // -&gt; throw an exception
+                // remove from axis.side property side listener
+                removeFromAllAxesPanes(axis);
+                axis.sideProperty().removeListener(axisSideChangeListener);
+            });
+
+            change.getAddedSubList().forEach(axis -> {
+                // check if axis is associated with an existing renderer,
+                // if yes -&gt; throw an exception
+                AssertUtils.notNull("to be added axis is null", axis);
+
+                final Side side = axis.getSide();
+                if (side == null) {
+                    throw new InvalidParameterException("axis '" + axis.getName() + "' has 'null' as side being set");
+                }
+                if (axis instanceof Node && !getAxesPane(axis.getSide()).getChildren().contains(axis)) {
+                    getAxesPane(axis.getSide()).getChildren().add((Node) axis);
+                }
+
+                axis.sideProperty().addListener(axisSideChangeListener);
+            });
+        }
+
+        requestLayout();
+    }
+
+    protected void axisSideChanged(final ObservableValue<? extends Side> change, final Side oldValue, final Side newValue) {
+        if (newValue != null && newValue.equals(oldValue)) {
+            return;
+        }
+        // loop through all registered axis
+        for (final Axis axis : axes) {
+            if (axis.getSide() == null) {
+                // remove axis from all axis panes
+                removeFromAllAxesPanes(axis);
+            }
+
+            // check if axis is in correct pane
+            if (axis instanceof Node && getAxesPane(axis.getSide()).getChildren().contains(axis)) {
+                // yes, it is continue with next axis
+                continue;
+            }
+            // axis needs to be moved to new pane location
+            // first: remove axis from all axis panes
+            removeFromAllAxesPanes(axis);
+
+            // second: add axis to correct axis pane
+            getAxesPane(axis.getSide()).getChildren().add((Node) axis);
+        }
+        requestLayout();
+    }
+
+    /**
+     * checks whether renderer has required x and y axes and adds the first x or y from the chart itself if necessary
+     * <p>
+     * additionally moves axis from Renderer with defined Side that are not yet in the Chart also to the chart's list
+     *
+     * @param renderer to be checked
+     */
+    protected void checkRendererForRequiredAxes(final Renderer renderer) {
+        if (renderer.getAxes().size() < 2) {
+            // not enough axes present in renderer
+            Optional<Axis> xAxis = renderer.getAxes().stream().filter(a -> a.getSide().isHorizontal()).findFirst();
+            Optional<Axis> yAxis = renderer.getAxes().stream().filter(a -> a.getSide().isVertical()).findFirst();
+
+            // search for horizontal/vertical axes in Chart (which creates one if missing) and add to renderer
+            if (xAxis.isEmpty()) {
+                renderer.getAxes().add(getFirstAxis(Orientation.HORIZONTAL));
+            }
+            if (yAxis.isEmpty()) {
+                // search for horizontal axis in Chart (which creates one if missing) and add to renderer
+                renderer.getAxes().add(getFirstAxis(Orientation.VERTICAL));
+            }
+        }
+        // check if there are assignable axes not yet present in the Chart's list
+        getAxes().addAll(renderer.getAxes().stream().limit(2).filter(a -> (a.getSide() != null && !getAxes().contains(a))).collect(Collectors.toList()));
+    }
+
+    protected List<DataSet> getDataSetForAxis(final Axis axis) {
+        final List<DataSet> retVal = new ArrayList<>();
+        if (axis == null) {
+            return retVal;
+        }
+        retVal.addAll(getDatasets());
+        getRenderers().forEach(renderer -> renderer.getAxes().stream().filter(axis::equals).forEach(rendererAxis -> retVal.addAll(renderer.getDatasets())));
+        return retVal;
+    }
+
+    protected void redrawCanvas() {
+        if (DEBUG && LOGGER.isDebugEnabled()) {
+            LOGGER.debug("   xychart redrawCanvas() - pre");
+        }
+        setAutoNotification(false);
+        FXUtils.assertJavaFxThread();
+        final long now = System.nanoTime();
+        final double diffMillisSinceLastUpdate = TimeUnit.NANOSECONDS.toMillis(now - lastCanvasUpdate);
+        if (diffMillisSinceLastUpdate < Chart.BURST_LIMIT_MS) {
+            if (!callCanvasUpdateLater) {
+                callCanvasUpdateLater = true;
+                // repaint 20 ms later in case this was just a burst operation
+                final KeyFrame kf1 = new KeyFrame(Duration.millis(20), e -> requestLayout());
+
+                final Timeline timeline = new Timeline(kf1);
+                Platform.runLater(timeline::play);
+            }
+
+            return;
+        }
+        if (DEBUG && LOGGER.isDebugEnabled()) {
+            LOGGER.debug("   xychart redrawCanvas() - executing");
+            LOGGER.debug("   xychart redrawCanvas() - canvas size = {}", String.format("%fx%f", canvas.getWidth(), canvas.getHeight()));
+        }
+
+        lastCanvasUpdate = now;
+        callCanvasUpdateLater = false;
+
+        final GraphicsContext gc = canvas.getGraphicsContext2D();
+        gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+
+        if (!gridRenderer.isDrawOnTop()) {
+            gridRenderer.render(gc, this, 0, null);
+        }
+
+        int dataSetOffset = 0;
+        for (final Renderer renderer : getRenderers()) {
+            // check for and add required axes
+            checkRendererForRequiredAxes(renderer);
+
+            final List<DataSet> drawnDataSets = renderer.render(gc, this, dataSetOffset, getDatasets());
+            dataSetOffset += drawnDataSets == null ? 0 : drawnDataSets.size();
+        }
+
+        if (gridRenderer.isDrawOnTop()) {
+            gridRenderer.render(gc, this, 0, null);
+        }
+        setAutoNotification(true);
+        if (DEBUG && LOGGER.isDebugEnabled()) {
+            LOGGER.debug("   xychart redrawCanvas() - done");
+        }
+    }
+
+    protected static void updateNumericAxis(final Axis axis, final List<DataSet> dataSets) {
+        if (dataSets == null || dataSets.isEmpty()) {
+            return;
+        }
+        final boolean oldAutoState = axis.autoNotification().getAndSet(false);
+        final double oldMin = axis.getAutoRange().getMin();
+        final double oldMax = axis.getAutoRange().getMax();
+        final double oldLength = axis.getLength();
+
+        final boolean isHorizontal = axis.getSide().isHorizontal();
+        final Side side = axis.getSide();
+        axis.getAutoRange().clear();
+        dataSets.stream().filter(DataSet::isVisible).forEach(dataset -> dataset.lock().readLockGuard(() -> {
+            if (dataset.getDimension() > 2 && (side == Side.RIGHT || side == Side.TOP)) {
+                if (!dataset.getAxisDescription(DataSet.DIM_Z).isDefined()) {
+                    dataset.recomputeLimits(DataSet.DIM_Z);
+                }
+                axis.getAutoRange().add(dataset.getAxisDescription(DataSet.DIM_Z).getMin());
+                axis.getAutoRange().add(dataset.getAxisDescription(DataSet.DIM_Z).getMax());
+            } else {
+                final int nDim = isHorizontal ? DataSet.DIM_X : DataSet.DIM_Y;
+                if (!dataset.getAxisDescription(nDim).isDefined()) {
+                    dataset.recomputeLimits(nDim);
+                }
+                axis.getAutoRange().add(dataset.getAxisDescription(nDim).getMin());
+                axis.getAutoRange().add(dataset.getAxisDescription(nDim).getMax());
+            }
+        }));
+
+        // handling of numeric axis and auto-range or auto-grow setting only
+        if (!axis.isAutoRanging() && !axis.isAutoGrowRanging()) {
+            if (oldMin != axis.getMin() || oldMax != axis.getMax() || oldLength != axis.getLength()) {
+                axis.requestAxisLayout();
+            }
+            axis.autoNotification().set(oldAutoState);
+            return;
+        }
+
+        if (axis.isAutoGrowRanging()) {
+            axis.getAutoRange().add(oldMin);
+            axis.getAutoRange().add(oldMax);
+        }
+
+        axis.getAutoRange().setAxisLength(axis.getLength() == 0 ? 1 : axis.getLength(), side);
+        axis.getUserRange().setAxisLength(axis.getLength() == 0 ? 1 : axis.getLength(), side);
+        axis.invalidateRange(null);
+
+        if (oldMin != axis.getMin() || oldMax != axis.getMax() || oldLength != axis.getLength()) {
+            axis.requestAxisLayout();
+        }
+        axis.autoNotification().set(oldAutoState);
+    }
+
+    // new Chart.java
+    // public final ObservableList<Renderer> renderers = FXCollections.observableArrayList();
+    public final ObservableList<Axis> axes = FXCollections.observableArrayList();
+    public final ObservableList<ChartPlugin> plugins = FXCollections.observableArrayList();
+    private final Canvas canvas = new ResizableCanvas();
+
+    public Chart() {
+        getDatasets().addListener(datasetChangeListener);
+        getAxes().addListener(axesChangeListener);
+        // update listener to propagate axes changes to chart changes
+        getAxes().addListener(axesChangeListenerLocal);
+
+        // old chart
+        for (int dim = 0; dim < axes.size(); dim++) {
+            final Axis axis = axes.get(dim);
+            if (!(axis instanceof AbstractAxis)) {
+                continue;
+            }
+            final AbstractAxis abstractAxis = (AbstractAxis) axis;
+            if (abstractAxis.getDimIndex() < 0) {
+                abstractAxis.setDimIndex(dim);
+            }
+        }
+
+        // setTriggerDistance(Chart.DEFAULT_TRIGGER_DISTANCE);
+        setMinSize(0, 0);
+        setPrefSize(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE);
+        setMaxSize(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE);
+        setPadding(Insets.EMPTY);
+
+        // populate SidesPane with default container
+        final BorderPane localBorderPane = new BorderPane();
+        // axesAndCanvasPane.setPadding(Insets.EMPTY);
+        // localBorderPane.setCenter(new StackPane(plotBackground, axesAndCanvasPane, plotForeGround));
+        plotBackground.toBack();
+        plotForeGround.toFront();
+        plotForeGround.setMouseTransparent(true);
+
+        for (final Side side : Side.values()) {
+            BorderPane.setAlignment(getMeasurementBar(side), Pos.CENTER);
+        }
+        localBorderPane.setTop(getMeasurementBar(Side.TOP));
+        localBorderPane.setBottom(getMeasurementBar(Side.BOTTOM));
+        localBorderPane.setLeft(getMeasurementBar(Side.LEFT));
+        localBorderPane.setRight(getMeasurementBar(Side.RIGHT));
+
+        // super.setContent(localBorderPane);
+
+        // hiddenPane.setTriggerDistance(DEFAULT_TRIGGER_DISTANCE);
+        // hiddenPane.triggerDistanceProperty().bindBidirectional(triggerDistanceProperty());
+        hiddenPane.setAnimationDelay(Duration.millis(500));
+        // hiddenPane.setMouseTransparent(true);
+        hiddenPane.setPickOnBounds(false);
+
+        final StackPane stackPane = new StackPane(getCanvas(), getCanvasForeground(), pluginsArea);
+        hiddenPane.setContent(stackPane);
+
+        // alt: canvas resize (default JavaFX Canvas does not automatically
+        // resize to pref width/height according to parent constraints
+        // canvas.widthProperty().bind(stackPane.widthProperty());
+        // canvas.heightProperty().bind(stackPane.heightProperty());
+        getCanvasForeground().setManaged(false);
+        final ChangeListener<Number> canvasSizeChangeListener = (ch, o, n) -> {
+            final double width = getCanvas().getWidth();
+            final double height = getCanvas().getHeight();
+
+            if (getCanvasForeground().getWidth() != width || getCanvasForeground().getHeight() != height) {
+                // workaround needed so that pane within pane does not trigger
+                // recursions w.r.t. repainting
+                getCanvasForeground().resize(width, height);
+            }
+
+            if (!isCanvasChangeRequested) {
+                isCanvasChangeRequested = true;
+                Platform.runLater(() -> {
+                    this.layoutChildren();
+                    isCanvasChangeRequested = false;
+                });
+            }
+        };
+        canvas.widthProperty().addListener(canvasSizeChangeListener);
+        canvas.heightProperty().addListener(canvasSizeChangeListener);
+
+        getCanvasForeground().setMouseTransparent(true);
+        getCanvas().toFront();
+        getCanvasForeground().toFront();
+        pluginsArea.toFront();
+
+        hiddenPane.getStyleClass().setAll("plot-content");
+
+        plotBackground.getStyleClass().setAll("chart-plot-background");
+
+        if (!canvas.isCache()) {
+            canvas.setCache(true);
+            canvas.setCacheHint(CacheHint.QUALITY);
+        }
+
+        // axesAndCanvasPane.add(hiddenPane, 2, 2); // centre-centre
+        canvas.setStyle("-fx-background-color: rgba(200, 250, 200, 0.5);");
+
+        final int rowSpan1 = 1;
+        final int colSpan1 = 1;
+        final int rowSpan3 = 3;
+        final int colSpan3 = 3;
+
+        // // outer title/legend/parameter pane border (outer rim)
+        // axesAndCanvasPane.add(getTitleLegendPane(Side.LEFT), 0, 1, colSpan1, rowSpan3); // left-centre
+        // axesAndCanvasPane.add(getTitleLegendPane(Side.RIGHT), 4, 1, colSpan1, rowSpan3); // centre-centre
+        // axesAndCanvasPane.add(getTitleLegendPane(Side.TOP), 1, 0, colSpan3, rowSpan1); // centre-top
+        // axesAndCanvasPane.add(getTitleLegendPane(Side.BOTTOM), 1, 4, colSpan3, rowSpan1); // centre-bottom
+
+        // // add default axis panes (inner rim)
+        // axesAndCanvasPane.add(getAxesPane(Side.LEFT), 1, 2); // left-centre
+        // axesAndCanvasPane.add(getAxesPane(Side.RIGHT), 3, 2); // centre-centre
+        // axesAndCanvasPane.add(getAxesPane(Side.TOP), 2, 1); // centre-top
+        // axesAndCanvasPane.add(getAxesPane(Side.BOTTOM), 2, 3); // centre-bottom
+
+        // final Pane pane = getAxesPane(Side.CENTER_VER);
+        // GridPane.setFillHeight(pane, true);
+        // GridPane.setFillWidth(pane, true);
+
+        // axesAndCanvasPane.add(getAxesPane(Side.CENTER_VER), 2, 2); // centre-vertical
+        // axesAndCanvasPane.add(getAxesPane(Side.CENTER_HOR), 2, 2); // centre-vertical
+
+        // // add default corner BorderPane fields -- inner rim
+        // axesAndCanvasPane.add(getAxesCornerPane(Corner.TOP_LEFT), 1, 1);
+        // axesAndCanvasPane.add(getAxesCornerPane(Corner.TOP_RIGHT), 3, 1);
+        // axesAndCanvasPane.add(getAxesCornerPane(Corner.BOTTOM_LEFT), 1, 3);
+        // axesAndCanvasPane.add(getAxesCornerPane(Corner.BOTTOM_RIGHT), 3, 3);
+
+        // // add default corner BorderPane fields -- outer rim
+        // axesAndCanvasPane.add(getTitleLegendCornerPane(Corner.TOP_LEFT), 0, 0);
+        // axesAndCanvasPane.add(getTitleLegendCornerPane(Corner.TOP_RIGHT), 4, 0);
+        // axesAndCanvasPane.add(getTitleLegendCornerPane(Corner.BOTTOM_LEFT), 0, 4);
+        // axesAndCanvasPane.add(getTitleLegendCornerPane(Corner.BOTTOM_RIGHT), 4, 4);
+
+        // // set row/colum constraints for grid pane
+        // for (int i = 0; i < 4; i++) {
+        //     final RowConstraints rowConstraint = new RowConstraints();
+        //     if (i == 2) {
+        //         rowConstraint.setVgrow(Priority.ALWAYS);
+        //         rowConstraint.setFillHeight(true);
+        //     }
+        //     axesAndCanvasPane.getRowConstraints().add(i, rowConstraint);
+
+        //     final ColumnConstraints colConstraint = new ColumnConstraints();
+        //     if (i == 2) {
+        //         colConstraint.setHgrow(Priority.ALWAYS);
+        //         colConstraint.setFillWidth(true);
+        //     }
+        //     axesAndCanvasPane.getColumnConstraints().add(i, colConstraint);
+        // }
+
+        // add plugin handling and listeners
+        getPlugins().addListener(pluginsChangedListener);
+
+        // add default chart content ie. ToolBar and Legend
+        // can be repositioned via setToolBarSide(...) and setLegendSide(...)
+        titleLabel.setAlignment(Pos.CENTER);
+        HBox.setHgrow(titleLabel, Priority.ALWAYS);
+        VBox.setVgrow(titleLabel, Priority.ALWAYS);
+        titleLabel.focusTraversableProperty().bind(Platform.accessibilityActiveProperty());
+
+        // register listener in tool bar FlowPane
+        // toolBar.registerListener();
+        // setTop(getToolBar());
+
+        getTitleLegendPane(Side.TOP).getChildren().add(titleLabel);
+
+        legendVisibleProperty().addListener((ch, old, visible) -> {
+            if (getLegend() == null) {
+                return;
+            }
+            getLegend().getNode().setVisible(visible);
+            if (Boolean.TRUE.equals(visible)) {
+                if (!getTitleLegendPane(getLegendSide()).getChildren().contains(getLegend().getNode())) {
+                    getTitleLegendPane(getLegendSide()).getChildren().add(getLegend().getNode());
+                }
+            } else {
+                getTitleLegendPane(getLegendSide()).getChildren().remove(getLegend().getNode());
+            }
+        });
+
+        // set CSS stuff
+        titleLabel.getStyleClass().add("chart-title");
+        getStyleClass().add("chart");
+        // axesAndCanvasPane.getStyleClass().add("chart-content");
+
+        registerShowingListener(); // NOPMD - unlikely but allowed override
+
+        // xychart
+        // for (int dim = 0; dim < axes.length; dim++) {
+        //     final Axis axis = axes[dim];
+        //     if (axis == null) {
+        //         continue;
+        //     }
+        //     switch (dim) {
+        //         case DataSet.DIM_X:
+        //             axis.setSide(Side.BOTTOM);
+        //             break;
+        //         case DataSet.DIM_Y:
+        //             axis.setSide(Side.LEFT);
+        //             break;
+        //         default:
+        //             axis.setSide(Side.RIGHT);
+        //             break;
+        //     }
+        //     getAxes().add(axis);
+        // }
+
+        gridRenderer.horizontalGridLinesVisibleProperty().addListener(gridLineVisibilitychange);
+        gridRenderer.verticalGridLinesVisibleProperty().addListener(gridLineVisibilitychange);
+        gridRenderer.getHorizontalMinorGrid().visibleProperty().addListener(gridLineVisibilitychange);
+        gridRenderer.getVerticalMinorGrid().visibleProperty().addListener(gridLineVisibilitychange);
+        gridRenderer.drawOnTopProperty().addListener(gridLineVisibilitychange);
+
+        this.setAnimated(false);
+        getRenderers().addListener(this::rendererChanged);
+
+        getRenderers().add(new ErrorDataSetRenderer());
+
+        // new chart
+        canvas.setStyle("-fx-background-color: blue;");
+        axes.addListener((ListChangeListener<Axis>) c -> {
+            while (c.next()) {
+                getChildren().removeAll(c.getRemoved());
+                c.getAddedSubList().forEach(ax -> getChildren().add((Node) ax));
+                // getChildren().addAll((List<Node>) c.getAddedSubList());
+            }
+        });
+        getChildren().add(canvas);
+    }
+
+    @Override
+    protected void layoutChildren() {
+        if (DEBUG && LOGGER.isDebugEnabled()) {
+            LOGGER.debug("chart layoutChildren() - pre");
+        }
+        if (layoutOngoing) {
+            return;
+        }
+        if (DEBUG && LOGGER.isDebugEnabled()) {
+            LOGGER.debug("chart layoutChildren() - execute");
+        }
+        final long start = ProcessingProfiler.getTimeStamp();
+        layoutOngoing = true;
+
+        // update axes range first because this may change the overall layout
+        updateAxisRange();
+        ProcessingProfiler.getTimeDiff(start, "updateAxisRange()");
+
+        // update chart parent according to possible size changes
+        // super.layoutChildren();
+
+        // layout all axes around the borders of the chart
+        final var marginTop = axes.stream().filter(ax -> ax.getSide() == Side.TOP).mapToDouble(ax -> ((Node) ax).prefHeight(getWidth())).sum();
+        final var marginBottom = axes.stream().filter(ax -> ax.getSide() == Side.BOTTOM).mapToDouble(ax -> ((Node) ax).prefHeight(getWidth())).sum();
+        final var marginLeft = axes.stream().filter(ax -> ax.getSide() == Side.LEFT).mapToDouble(ax -> ((Node) ax).prefWidth(getHeight())).sum();
+        final var marginRight = axes.stream().filter(ax -> ax.getSide() == Side.RIGHT).mapToDouble(ax -> ((Node) ax).prefWidth(getHeight())).sum();
+        final var horizontalCenterHeight = axes.stream().filter(ax -> ax.getSide() == Side.CENTER_HOR).mapToDouble(ax -> ((Node) ax).prefHeight(getWidth())).sum();
+        final var verticalCenterWidth = axes.stream().filter(ax -> ax.getSide() == Side.CENTER_VER).mapToDouble(ax -> ((Node) ax).prefWidth(getHeight())).sum();
+        // resize canvas to the remaining space
+        canvas.resizeRelocate(marginLeft, marginTop, getWidth() - marginLeft - marginRight, getHeight() - marginTop - marginBottom);
+        positionAxes(marginTop, marginBottom, marginLeft, marginRight, horizontalCenterHeight, verticalCenterWidth);
+        axes.forEach(ax -> {
+            ax.requestAxisLayout();
+        });
+
+        // request re-layout of canvas
+        redrawCanvas();
+
+        ProcessingProfiler.getTimeDiff(start, "updateCanvas()");
+
+        // request re-layout of plugins
+        layoutPluginsChildren();
+        ProcessingProfiler.getTimeDiff(start, "layoutPluginsChildren()");
+
+        ProcessingProfiler.getTimeDiff(start, "end");
+
+        layoutOngoing = false;
+        if (DEBUG && LOGGER.isDebugEnabled()) {
+            LOGGER.debug("chart layoutChildren() - done");
+        }
+        fireInvalidated();
+    }
+
+    private void positionAxes(final double marginTop, final double marginBottom, final double marginLeft, final double marginRight, final double horizontalCenterHeight, final double verticalCenterWidth) {
+        double posTop = 0;
+        double posBottom = getHeight();
+        double posHorCenter = (getHeight() - marginTop - marginBottom + horizontalCenterHeight) / 2.0 + marginTop;
+        double posLeft = 0;
+        double posRight = getWidth();
+        double posVertCenter = (getWidth() - marginLeft - marginRight - verticalCenterWidth) / 2.0 + marginLeft;
+        for (final var axis_ : axes) {
+            final var axis = (AbstractAxis) axis_;
+            switch (axis.getSide()) {
+                case TOP:
+                    axis.resizeRelocate(marginLeft, posTop,getWidth() - marginLeft - marginRight, axis.prefHeight(getWidth()));
+                    posTop += axis.prefHeight(getWidth());
+                    break;
+                case BOTTOM:
+                    posBottom -= axis.prefHeight(getWidth());
+                    axis.resizeRelocate(marginLeft, posBottom, getWidth() - marginLeft - marginRight, axis.prefHeight(getWidth()));
+                    break;
+                case LEFT:
+                    axis.resizeRelocate(posLeft, marginTop, axis.prefWidth(getHeight()), getHeight() - marginTop - marginBottom);
+                    posLeft += axis.prefWidth(getHeight());
+                    break;
+                case RIGHT:
+                    posRight -= axis.prefWidth(getHeight());
+                    axis.resizeRelocate(posRight, marginTop, axis.prefWidth(getHeight()), getHeight() - marginTop - marginBottom);
+                    break;
+                case CENTER_HOR:
+                    posHorCenter -= axis.prefHeight(getWidth());
+                    axis.resizeRelocate(marginLeft, posHorCenter, getWidth() - marginLeft - marginRight, axis.prefHeight(getWidth()));
+                    break;
+                case CENTER_VER:
+                    axis.resizeRelocate(posVertCenter, marginTop, axis.prefWidth(getHeight()), getHeight() - marginTop - marginBottom);
+                    posVertCenter += axis.prefWidth(getHeight());
+                    break;
+            }
         }
     }
 }

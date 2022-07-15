@@ -1,5 +1,6 @@
 package io.fair_acc.chartfx.samples;
 
+import io.fair_acc.chartfx.Chart;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
@@ -9,7 +10,6 @@ import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.fair_acc.chartfx.XYChart;
 import io.fair_acc.chartfx.axes.AxisLabelOverlapPolicy;
 import io.fair_acc.chartfx.axes.spi.DefaultNumericAxis;
 import io.fair_acc.chartfx.plugins.Zoomer;
@@ -32,7 +32,8 @@ public class RotatedAxisLabelSample extends Application {
         final DefaultNumericAxis yAxis0 = new DefaultNumericAxis("default y-axis");
         yAxis0.setSide(Side.RIGHT);
 
-        final XYChart chart = new XYChart(xAxis0, yAxis0);
+        final Chart chart = new Chart();
+        chart.getAxes().addAll(xAxis0, yAxis0);
         chart.getPlugins().add(new Zoomer()); // standard plugin, useful for most cases
         final DoubleDataSet dataSet1 = new DoubleDataSet("data set #1");
         chart.getDatasets().addAll(dataSet1);
