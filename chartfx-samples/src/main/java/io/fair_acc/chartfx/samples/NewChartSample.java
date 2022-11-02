@@ -27,7 +27,7 @@ public class NewChartSample extends Application {
         xAxis2.setStyle("-fx-background-color: cyan;");
         xAxis3.setStyle("-fx-background-color: orange;");
         yAxis1.setStyle("-fx-background-color: red;");
-        yAxis2.setStyle("-fx-background-color: blue;");
+        yAxis2.setStyle("-fx-background-color: magenta;");
         yAxis3.setStyle("-fx-background-color: pink;");
         xAxis1.setSide(Side.BOTTOM);
         xAxis2.setSide(Side.BOTTOM);

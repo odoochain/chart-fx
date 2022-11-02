@@ -182,7 +182,6 @@ public class EditDataSet extends TableViewer {
         chartProperty().addListener((change, o, n) -> {
             if (o != null) {
                 o.getCanvasForeground().getChildren().remove(markerPane);
-                o.getPlotArea().setBottom(null);
                 // markerPane.prefWidthProperty().unbind();
                 // markerPane.prefHeightProperty().unbind();
             }

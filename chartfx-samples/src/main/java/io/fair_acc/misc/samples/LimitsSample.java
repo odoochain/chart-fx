@@ -31,8 +31,8 @@ public class LimitsSample extends Application {
         var yAxis = new DefaultNumericAxis("y-value", "a.u.");
         var chart = new Chart();
         chart.getAxes().addAll(xAxis, yAxis);
-        final HiddenSidesPane hiddenSidePane = chart.getPlotArea();
-        hiddenSidePane.setTriggerDistance(0);
+        //final HiddenSidesPane hiddenSidePane = chart.getPlotArea();
+        //hiddenSidePane.setTriggerDistance(0);
 
         chart.getPlugins().add(new Zoomer());
         chart.getPlugins().add(new EditAxis());

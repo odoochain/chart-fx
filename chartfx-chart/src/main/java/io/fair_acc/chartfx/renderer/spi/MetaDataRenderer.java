@@ -338,7 +338,7 @@ public class MetaDataRenderer extends AbstractMetaDataRendererParameter<MetaData
         // remove old pane
         borderPane.getChildren().remove(messageBox);
         for (final Side s : Side.values()) {
-            chart.getTitleLegendPane(s).getChildren().remove(messageBox);
+            //chart.getTitleLegendPane(s).getChildren().remove(messageBox);
         }
 
         if (isDrawOnCanvas()) {
@@ -366,7 +366,7 @@ public class MetaDataRenderer extends AbstractMetaDataRendererParameter<MetaData
                 break;
             }
         } else {
-            chart.getTitleLegendPane(side).getChildren().add(messageBox);
+            //chart.getTitleLegendPane(side).getChildren().add(messageBox);
         }
         // chart.requestLayout();
     }

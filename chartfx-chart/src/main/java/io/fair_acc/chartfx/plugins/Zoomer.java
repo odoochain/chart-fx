@@ -272,7 +272,7 @@ public class Zoomer extends ChartPlugin {
         chartProperty().addListener((change, o, n) -> {
             if (o != null) {
                 o.getToolBar().getItems().remove(zoomButtons);
-                o.getPlotArea().setBottom(null);
+                // o.getPlotArea().setBottom(null);
                 xRangeSlider.prefWidthProperty().unbind();
             }
             if (n != null) {
@@ -282,7 +282,7 @@ public class Zoomer extends ChartPlugin {
                 /* always create the slider, even if not visible at first */
                 final ZoomRangeSlider slider = new ZoomRangeSlider(n);
                 if (isSliderVisible()) {
-                    n.getPlotArea().setBottom(slider);
+                    // n.getPlotArea().setBottom(slider);
                     xRangeSlider.prefWidthProperty().bind(n.getCanvasForeground().widthProperty());
                 }
             }
@@ -1314,10 +1314,10 @@ public class Zoomer extends ChartPlugin {
                 }
                 isUpdating = true;
                 if (Boolean.TRUE.equals(n)) {
-                    getChart().getPlotArea().setBottom(xRangeSlider);
+                    // getChart().getPlotArea().setBottom(xRangeSlider);
                     prefWidthProperty().bind(getChart().getCanvasForeground().widthProperty());
                 } else {
-                    getChart().getPlotArea().setBottom(null);
+                    // getChart().getPlotArea().setBottom(null);
                     prefWidthProperty().unbind();
                 }
                 isUpdating = false;

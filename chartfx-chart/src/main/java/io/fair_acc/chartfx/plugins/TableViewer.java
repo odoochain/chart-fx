@@ -112,7 +112,6 @@ public class TableViewer extends ChartPlugin {
                 // plugin has already been initialised for old chart
                 oldChart.getToolBar().getItems().remove(interactorButtons);
                 oldChart.getPlotForeground().getChildren().remove(table);
-                oldChart.getPlotArea().setBottom(null);
                 table.prefWidthProperty().unbind();
                 table.prefHeightProperty().unbind();
             }

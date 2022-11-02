@@ -44,7 +44,7 @@ public class RunChartSamples extends Application {
 
         buttons.getChildren().add(new MyButton("AxisRangeScalingSample", new AxisRangeScalingSample()));
         buttons.getChildren().add(new MyButton("CategoryAxisSample", new CategoryAxisSample()));
-        buttons.getChildren().add(new MyButton("ChartAnatomySample", new ChartAnatomySample()));
+        //buttons.getChildren().add(new MyButton("ChartAnatomySample", new ChartAnatomySample()));
         buttons.getChildren().add(new MyButton("ChartIndicatorSample", new ChartIndicatorSample()));
         buttons.getChildren().add(new MyButton("ChartPerformanceGraph", new ChartPerformanceGraph()));
         buttons.getChildren().add(new MyButton("ContourChartSample", new ContourChartSample()));
