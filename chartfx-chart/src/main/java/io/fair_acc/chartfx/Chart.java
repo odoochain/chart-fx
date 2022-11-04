@@ -188,7 +188,7 @@ public class Chart extends Region implements Observable{
                 // getChildren().addAll((List<Node>) c.getAddedSubList());
             }
         });
-        getChildren().add(canvas);
+        getChildren().addAll(canvas, toolBar);
         canvas.toFront();
     }
 
@@ -617,6 +617,11 @@ public class Chart extends Region implements Observable{
     }
 
     protected void pluginsChanged(final ListChangeListener.Change<? extends ChartPlugin> change) {
+        // update chart property
+        while (change.next()) {
+            change.getAddedSubList().forEach(c -> c.setChart(this));
+            change.getRemoved().stream().filter(c -> c.getChart() == this).forEach(c -> c.setChart(null));
+        }
         requestLayout();
     }
 
@@ -1174,14 +1179,20 @@ public class Chart extends Region implements Observable{
         ProcessingProfiler.getTimeDiff(start, "updateAxisRange()");
 
         // layout all axes around the borders of the chart
-        final var marginTop = axes.stream().filter(ax -> ax.getSide() == Side.TOP).mapToDouble(ax -> ((Node) ax).prefHeight(getWidth())).sum();
+        var marginTop = axes.stream().filter(ax -> ax.getSide() == Side.TOP).mapToDouble(ax -> ((Node) ax).prefHeight(getWidth())).sum();
         final var marginBottom = axes.stream().filter(ax -> ax.getSide() == Side.BOTTOM).mapToDouble(ax -> ((Node) ax).prefHeight(getWidth())).sum();
         final var marginLeft = axes.stream().filter(ax -> ax.getSide() == Side.LEFT).mapToDouble(ax -> ((Node) ax).prefWidth(getHeight())).sum();
         final var marginRight = axes.stream().filter(ax -> ax.getSide() == Side.RIGHT).mapToDouble(ax -> ((Node) ax).prefWidth(getHeight())).sum();
         final var horizontalCenterHeight = axes.stream().filter(ax -> ax.getSide() == Side.CENTER_HOR).mapToDouble(ax -> ((Node) ax).prefHeight(getWidth())).sum();
         final var verticalCenterWidth = axes.stream().filter(ax -> ax.getSide() == Side.CENTER_VER).mapToDouble(ax -> ((Node) ax).prefWidth(getHeight())).sum();
+
+        // space for other elements
+        getToolBar().resizeRelocate(marginLeft, marginTop, getWidth() - marginLeft - marginRight, getToolBar().prefHeight(getWidth()));
+        marginTop += getToolBar().prefHeight(getWidth());
+
         // resize canvas to the remaining space
         canvas.resizeRelocate(marginLeft, marginTop, getWidth() - marginLeft - marginRight, getHeight() - marginTop - marginBottom);
+
         positionAxes(marginTop, marginBottom, marginLeft, marginRight, horizontalCenterHeight, verticalCenterWidth);
         axes.forEach(ax -> {
             ax.requestAxisLayout();
