@@ -31,11 +31,16 @@ public class LaunchJFX { // NOMEN EST OMEN
         if (args.length < 1 || args[0].contains(LaunchJFX.class.getName())) {
             Application.launch(RunChartSamples.class);
         } else {
-            Class<? extends Application> clazz = Class.forName(args[0]).asSubclass(Application.class);
-            if (Application.class.isAssignableFrom(clazz)) {
-                Application.launch(clazz);
-            } else {
-                LOGGER.atInfo().addArgument(clazz).log("{} is not an Application - starting default view");
+            try {
+                Class<? extends Application> clazz = Class.forName(args[0]).asSubclass(Application.class);
+                if (Application.class.isAssignableFrom(clazz)) {
+                    Application.launch(clazz);
+                } else {
+                    LOGGER.atInfo().addArgument(clazz).log("{} is not an Application - starting default view");
+                    Application.launch(RunChartSamples.class);
+                }
+            } catch (ClassCastException e) {
+                LOGGER.atInfo().addArgument(args[0]).log("{} is not an Application - starting default view");
                 Application.launch(RunChartSamples.class);
             }
         }

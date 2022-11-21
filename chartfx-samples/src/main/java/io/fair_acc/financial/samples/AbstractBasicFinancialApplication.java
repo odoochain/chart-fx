@@ -10,7 +10,6 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Map;
 
-import io.fair_acc.financial.samples.service.consolidate.OhlcvConsolidationAddon;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
@@ -53,6 +52,7 @@ import io.fair_acc.financial.samples.service.CalendarUtils;
 import io.fair_acc.financial.samples.service.SimpleOhlcvDailyParser;
 import io.fair_acc.financial.samples.service.SimpleOhlcvReplayDataSet;
 import io.fair_acc.financial.samples.service.SimpleOhlcvReplayDataSet.DataInput;
+import io.fair_acc.financial.samples.service.consolidate.OhlcvConsolidationAddon;
 import io.fair_acc.financial.samples.service.period.IntradayPeriod;
 
 /**

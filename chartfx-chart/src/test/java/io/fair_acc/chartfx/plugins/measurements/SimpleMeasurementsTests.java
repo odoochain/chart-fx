@@ -14,8 +14,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import io.fair_acc.chartfx.ui.utils.JavaFXInterceptorUtils;
-import io.fair_acc.chartfx.ui.utils.TestFx;
 import javafx.scene.Scene;
 import javafx.scene.control.ButtonType;
 import javafx.scene.layout.VBox;
@@ -36,6 +34,8 @@ import io.fair_acc.chartfx.plugins.XValueIndicator;
 import io.fair_acc.chartfx.plugins.YValueIndicator;
 import io.fair_acc.chartfx.plugins.measurements.SimpleMeasurements.MeasurementCategory;
 import io.fair_acc.chartfx.plugins.measurements.SimpleMeasurements.MeasurementType;
+import io.fair_acc.chartfx.ui.utils.JavaFXInterceptorUtils;
+import io.fair_acc.chartfx.ui.utils.TestFx;
 import io.fair_acc.chartfx.utils.FXUtils;
 import io.fair_acc.dataset.testdata.spi.SineFunction;
 import io.fair_acc.dataset.testdata.spi.TriangleFunction;

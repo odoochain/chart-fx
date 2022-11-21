@@ -8,14 +8,15 @@ package io.fair_acc.chartfx.utils;
 import java.util.LinkedList;
 import java.util.List;
 
-import io.fair_acc.chartfx.Chart;
-import io.fair_acc.chartfx.XYChart;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Label;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
+
+import io.fair_acc.chartfx.Chart;
+import io.fair_acc.chartfx.XYChart;
 
 /**
  * @author braeun
