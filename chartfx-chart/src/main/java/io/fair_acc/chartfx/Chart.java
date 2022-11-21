@@ -12,6 +12,7 @@ import io.fair_acc.chartfx.renderer.spi.ErrorDataSetRenderer;
 import io.fair_acc.chartfx.renderer.spi.GridRenderer;
 import io.fair_acc.chartfx.renderer.spi.LabelledMarkerRenderer;
 import io.fair_acc.chartfx.ui.ChartLayoutAnimator;
+import io.fair_acc.chartfx.ui.HidingPane;
 import io.fair_acc.chartfx.ui.css.CssPropertyFactory;
 import io.fair_acc.chartfx.ui.geometry.Side;
 import io.fair_acc.chartfx.utils.FXUtils;
@@ -188,7 +189,7 @@ public class Chart extends Region implements Observable{
                 // getChildren().addAll((List<Node>) c.getAddedSubList());
             }
         });
-        getChildren().addAll(canvas, toolBar);
+        getChildren().addAll(canvas, toolBarPane);
         canvas.toFront();
     }
 
@@ -435,6 +436,7 @@ public class Chart extends Region implements Observable{
     // Toolbar
     // **************
     protected final ToolBar toolBar = new ToolBar();
+    protected final HidingPane toolBarPane = new HidingPane(toolBar);
     protected final BooleanProperty toolBarPinned = new SimpleBooleanProperty(this, "toolBarPinned", false);
     private final StyleableObjectProperty<Side> toolBarSide = CSS.createObjectProperty(this, "toolBarSide", Side.TOP, false,
             StyleConverter.getEnumConverter(Side.class), (oldVal, newVal) -> AssertUtils.notNull("Side must not be null", newVal) , this::requestLayout);
@@ -1187,8 +1189,8 @@ public class Chart extends Region implements Observable{
         final var verticalCenterWidth = axes.stream().filter(ax -> ax.getSide() == Side.CENTER_VER).mapToDouble(ax -> ((Node) ax).prefWidth(getHeight())).sum();
 
         // space for other elements
-        getToolBar().resizeRelocate(marginLeft, marginTop, getWidth() - marginLeft - marginRight, getToolBar().prefHeight(getWidth()));
-        marginTop += getToolBar().prefHeight(getWidth());
+        toolBarPane.resizeRelocate(marginLeft, marginTop, getWidth() - marginLeft - marginRight, toolBarPane.prefHeight(getWidth()));
+        marginTop += toolBarPane.prefHeight(getWidth());
 
         // resize canvas to the remaining space
         canvas.resizeRelocate(marginLeft, marginTop, getWidth() - marginLeft - marginRight, getHeight() - marginTop - marginBottom);
