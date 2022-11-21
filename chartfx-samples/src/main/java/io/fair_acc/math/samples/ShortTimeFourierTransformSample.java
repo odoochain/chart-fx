@@ -2,6 +2,8 @@ package io.fair_acc.math.samples;
 
 import java.util.Random;
 
+import io.fair_acc.chartfx.Chart;
+import io.fair_acc.chartfx.axes.spi.AbstractAxis;
 import javafx.application.Application;
 import javafx.beans.InvalidationListener;
 import javafx.beans.value.ObservableValue;
@@ -20,9 +22,7 @@ import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.fair_acc.chartfx.Chart;
 import io.fair_acc.chartfx.axes.Axis;
-import io.fair_acc.chartfx.axes.spi.AbstractAxisParameter;
 import io.fair_acc.chartfx.axes.spi.DefaultNumericAxis;
 import io.fair_acc.chartfx.plugins.EditAxis;
 import io.fair_acc.chartfx.plugins.UpdateAxisLabels;
@@ -123,7 +123,7 @@ public class ShortTimeFourierTransformSample extends AbstractDemoApplication {
         final Axis zAxis1 = contourChartRenderer1.getZAxis();
         zAxis1.setName("Amplitude"); // TODO: fix label updater to respect z-axis
         zAxis1.setUnit("dB");
-        ((AbstractAxisParameter) zAxis1).setDimIndex(DataSet.DIM_Z);
+        ((AbstractAxis) zAxis1).setDimIndex(DataSet.DIM_Z);
         chart1.getAxes().addAll(xAxis1, yAxis1, zAxis1);
         // Add plugins after all axes are correctly set up
         chart1.getPlugins().add(new UpdateAxisLabels());
@@ -147,7 +147,7 @@ public class ShortTimeFourierTransformSample extends AbstractDemoApplication {
         final Axis zAxis2 = contourChartRenderer2.getZAxis();
         zAxis2.setName("Amplitude");
         zAxis2.setUnit("dB");
-        ((AbstractAxisParameter) zAxis2).setDimIndex(DataSet.DIM_Z);
+        ((AbstractAxis) zAxis2).setDimIndex(DataSet.DIM_Z);
         chart2.getAxes().addAll(xAxis2, yAxis2, zAxis2);
         chart2.getRenderers().add(new MetaDataRenderer(chart2));
         chart2.getPlugins().add(new UpdateAxisLabels());
