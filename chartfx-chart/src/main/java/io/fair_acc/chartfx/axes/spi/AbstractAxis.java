@@ -5,6 +5,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
+import io.fair_acc.chartfx.Chart;
+import io.fair_acc.chartfx.ui.css.CssPropertyFactory;
+import io.fair_acc.dataset.event.EventListener;
+import io.fair_acc.dataset.event.UpdateEvent;
+import io.fair_acc.dataset.utils.NoDuplicatesList;
 import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -32,20 +37,14 @@ import javafx.scene.text.TextAlignment;
 import javafx.util.Duration;
 import javafx.util.StringConverter;
 
-import io.fair_acc.chartfx.Chart;
 import io.fair_acc.chartfx.axes.Axis;
 import io.fair_acc.chartfx.axes.AxisLabelFormatter;
 import io.fair_acc.chartfx.axes.AxisLabelOverlapPolicy;
 import io.fair_acc.chartfx.axes.spi.format.DefaultFormatter;
 import io.fair_acc.chartfx.axes.spi.format.DefaultLogFormatter;
 import io.fair_acc.chartfx.axes.spi.format.DefaultTimeFormatter;
-import io.fair_acc.chartfx.ui.ResizableCanvas;
-import io.fair_acc.chartfx.ui.css.CssPropertyFactory;
 import io.fair_acc.chartfx.ui.geometry.Side;
 import io.fair_acc.dataset.event.AxisChangeEvent;
-import io.fair_acc.dataset.event.EventListener;
-import io.fair_acc.dataset.event.UpdateEvent;
-import io.fair_acc.dataset.utils.NoDuplicatesList;
 import io.fair_acc.dataset.utils.SoftHashMap;
 
 /**
@@ -102,7 +101,7 @@ public abstract class AbstractAxis extends Region implements Axis {
     protected static final int BURST_LIMIT_CSS_MS = 3000;
     private long lastCssUpdate;
     private boolean callCssUpdater;
-    private final transient Canvas canvas = new ResizableCanvas();
+    private final transient Canvas canvas = new Canvas();
     protected boolean labelOverlap;
     protected double scaleFont = 1.0;
     protected final ReentrantLock lock = new ReentrantLock();
@@ -2346,6 +2345,7 @@ public abstract class AbstractAxis extends Region implements Axis {
             super.layoutChildren();
             return;
         }
+        canvas.resizeRelocate(0, 0, getWidth(), getHeight());
 
         final var side = getSide();
         if (side == null) {
