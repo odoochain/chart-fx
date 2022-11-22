@@ -1193,7 +1193,10 @@ public class Chart extends Region implements Observable{
         marginTop += toolBarPane.prefHeight(getWidth());
 
         // resize canvas to the remaining space
-        canvas.resizeRelocate(marginLeft, marginTop, getWidth() - marginLeft - marginRight, getHeight() - marginTop - marginBottom);
+        // canvas.resizeRelocate(marginLeft, marginTop, getWidth() - marginLeft - marginRight, getHeight() - marginTop - marginBottom);
+        canvas.relocate(marginLeft, marginTop);
+        canvas.setWidth(getWidth() - marginLeft - marginRight);
+        canvas.setHeight(getHeight() - marginTop - marginBottom);
 
         positionAxes(marginTop, marginBottom, marginLeft, marginRight, horizontalCenterHeight, verticalCenterWidth);
         axes.forEach(ax -> {

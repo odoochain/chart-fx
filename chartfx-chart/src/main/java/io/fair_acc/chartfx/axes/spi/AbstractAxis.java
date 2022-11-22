@@ -2339,13 +2339,13 @@ public abstract class AbstractAxis extends Region implements Axis {
      */
     @Override
     protected void layoutChildren() {
+        canvas.setWidth(getWidth());
+        canvas.setHeight(getHeight());
         if (this.isValid() && !super.isNeedsLayout()) {
             // axis range (min, max, tick unit, ..) nor physical dimension (width, height <-> length)
             // nor styling attributes have changed can keep the old layout
-            super.layoutChildren();
             return;
         }
-        canvas.resizeRelocate(0, 0, getWidth(), getHeight());
 
         final var side = getSide();
         if (side == null) {
@@ -2458,7 +2458,6 @@ public abstract class AbstractAxis extends Region implements Axis {
             fireInvalidated();
         }
 
-        super.layoutChildren();
         validProperty().set(true);
     }
 
