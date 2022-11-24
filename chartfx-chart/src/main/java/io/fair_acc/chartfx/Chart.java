@@ -189,8 +189,9 @@ public class Chart extends Region implements Observable{
                 // getChildren().addAll((List<Node>) c.getAddedSubList());
             }
         });
-        getChildren().addAll(canvas, toolBarPane);
+        getChildren().addAll(canvas, toolBarPane, legend.get().getNode());
         canvas.toFront();
+        toolBarPane.toFront();
     }
 
     // ****************
@@ -1176,36 +1177,74 @@ public class Chart extends Region implements Observable{
         final long start = ProcessingProfiler.getTimeStamp();
         layoutOngoing = true;
 
+        double marginTop = 0;
+        double marginBottom = 0;           // reset bounds of all axes?
+        double marginLeft = 0;             // evaluate bounds for axes
+        double marginRight = 0;            // iterate on all renderers and update ranges for their axes according to datasets
+        double horizontalCenterHeight = 0; // evaluate linked axes?
+        double verticalCenterWidth = 0;
+        double posTop = 0;
+
+        // legend
+        if (legendVisible.get()){
+            final var legendNode = legend.get().getNode();
+            switch (legendSide.get()) {
+                case TOP:
+                    legendNode.resizeRelocate(marginLeft, marginTop, getWidth() - marginLeft - marginRight, legendNode.prefHeight(getWidth()));
+                    marginTop += legendNode.prefHeight(getWidth());
+                    posTop += legendNode.prefHeight(getWidth());
+                    break;
+                case BOTTOM:
+                    marginBottom += legendNode.prefHeight(getWidth());
+                    legendNode.resizeRelocate(marginLeft, getHeight() - marginBottom, getWidth() - marginLeft - marginRight, legendNode.prefHeight(getWidth()));
+                    break;
+                case LEFT:
+                    break;
+                case RIGHT:
+                    break;
+                case CENTER_HOR:
+                case CENTER_VER:
+                    LOGGER.atError().log("Invalid Legend Position");
+                    break;
+            }
+        }
+
         // update axes range first because this may change the overall layout
         updateAxisRange();
         ProcessingProfiler.getTimeDiff(start, "updateAxisRange()");
 
         // layout all axes around the borders of the chart
-        var marginTop = axes.stream().filter(ax -> ax.getSide() == Side.TOP).mapToDouble(ax -> ((Node) ax).prefHeight(getWidth())).sum();
-        final var marginBottom = axes.stream().filter(ax -> ax.getSide() == Side.BOTTOM).mapToDouble(ax -> ((Node) ax).prefHeight(getWidth())).sum();
-        final var marginLeft = axes.stream().filter(ax -> ax.getSide() == Side.LEFT).mapToDouble(ax -> ((Node) ax).prefWidth(getHeight())).sum();
-        final var marginRight = axes.stream().filter(ax -> ax.getSide() == Side.RIGHT).mapToDouble(ax -> ((Node) ax).prefWidth(getHeight())).sum();
-        final var horizontalCenterHeight = axes.stream().filter(ax -> ax.getSide() == Side.CENTER_HOR).mapToDouble(ax -> ((Node) ax).prefHeight(getWidth())).sum();
-        final var verticalCenterWidth = axes.stream().filter(ax -> ax.getSide() == Side.CENTER_VER).mapToDouble(ax -> ((Node) ax).prefWidth(getHeight())).sum();
+        // get sizes for all axes
+        marginTop += axes.stream().filter(ax -> ax.getSide() == Side.TOP).mapToDouble(ax -> ((Node) ax).prefHeight(getWidth())).sum();
+        marginBottom += axes.stream().filter(ax -> ax.getSide() == Side.BOTTOM).mapToDouble(ax -> ((Node) ax).prefHeight(getWidth())).sum();
+        marginLeft += axes.stream().filter(ax -> ax.getSide() == Side.LEFT).mapToDouble(ax -> ((Node) ax).prefWidth(getHeight())).sum();
+        marginRight += axes.stream().filter(ax -> ax.getSide() == Side.RIGHT).mapToDouble(ax -> ((Node) ax).prefWidth(getHeight())).sum();
+        horizontalCenterHeight += axes.stream().filter(ax -> ax.getSide() == Side.CENTER_HOR).mapToDouble(ax -> ((Node) ax).prefHeight(getWidth())).sum();
+        verticalCenterWidth += axes.stream().filter(ax -> ax.getSide() == Side.CENTER_VER).mapToDouble(ax -> ((Node) ax).prefWidth(getHeight())).sum();
 
-        // space for other elements
+        // space for other elements: toolbar
         toolBarPane.resizeRelocate(marginLeft, marginTop, getWidth() - marginLeft - marginRight, toolBarPane.prefHeight(getWidth()));
-        marginTop += toolBarPane.prefHeight(getWidth());
+        // overlayed over canvas, was: marginTop += toolBarPane.prefHeight(getWidth());
 
-        // resize canvas to the remaining space
+        // resize canvas to the remaining space: canvas is not resizeable -> set size explicitly (is this the correct way to go?)
         // canvas.resizeRelocate(marginLeft, marginTop, getWidth() - marginLeft - marginRight, getHeight() - marginTop - marginBottom);
         canvas.relocate(marginLeft, marginTop);
         canvas.setWidth(getWidth() - marginLeft - marginRight);
         canvas.setHeight(getHeight() - marginTop - marginBottom);
 
-        positionAxes(marginTop, marginBottom, marginLeft, marginRight, horizontalCenterHeight, verticalCenterWidth);
+        // layout axes
+        positionAxes(marginTop, marginBottom, marginLeft, marginRight, horizontalCenterHeight, verticalCenterWidth, posTop);
+        // actually draw the axes (tick marks and all)
         axes.forEach(ax -> {
             ax.requestAxisLayout();
         });
+        // draw grid below?
 
         // request re-layout of canvas (TODO: only if canvas size changed?)
         redrawCanvas();
         ProcessingProfiler.getTimeDiff(start, "updateCanvas()");
+
+        // draw grid above?
 
         // request re-layout of plugins
         layoutPluginsChildren();
@@ -1213,15 +1252,14 @@ public class Chart extends Region implements Observable{
 
         ProcessingProfiler.getTimeDiff(start, "end");
 
-        layoutOngoing = false;
+        layoutOngoing = false; // why is this needed? layout children should only be called by the
         if (DEBUG && LOGGER.isDebugEnabled()) {
             LOGGER.debug("chart layoutChildren() - done");
         }
         fireInvalidated();
     }
 
-    private void positionAxes(final double marginTop, final double marginBottom, final double marginLeft, final double marginRight, final double horizontalCenterHeight, final double verticalCenterWidth) {
-        double posTop = 0;
+    private void positionAxes(final double marginTop, final double marginBottom, final double marginLeft, final double marginRight, final double horizontalCenterHeight, final double verticalCenterWidth, double posTop) {
         double posBottom = getHeight();
         double posHorCenter = (getHeight() - marginTop - marginBottom + horizontalCenterHeight) / 2.0 + marginTop;
         double posLeft = 0;

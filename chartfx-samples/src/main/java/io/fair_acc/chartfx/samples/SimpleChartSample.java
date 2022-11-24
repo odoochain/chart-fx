@@ -1,6 +1,7 @@
 package io.fair_acc.chartfx.samples;
 
 import io.fair_acc.chartfx.Chart;
+import io.fair_acc.chartfx.ui.geometry.Side;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
@@ -64,6 +65,10 @@ public class SimpleChartSample extends Application {
 
         // alternatively (optional via default constructor):
         // final DoubleDataSet dataSet3 = new DoubleDataSet("data set #1", xValues, yValues1, N_SAMPLES, false)
+
+        // TODO: fix legend layouting, for now works only for top and is not really nice
+        chart.setLegendVisible(true);
+        chart.setLegendSide(Side.TOP);
 
         final Scene scene = new Scene(new StackPane(chart), 800, 600);
         primaryStage.setTitle(getClass().getSimpleName());
