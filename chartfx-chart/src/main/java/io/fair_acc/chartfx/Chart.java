@@ -691,26 +691,32 @@ public class Chart extends Region implements Observable{
         return gridRenderer;
     }
 
+    @Deprecated(since = "11.2.0") // set directly in grid renderer or axis
     public final BooleanProperty horizontalGridLinesVisibleProperty() {
         return gridRenderer.horizontalGridLinesVisibleProperty();
     }
 
+    @Deprecated(since = "11.2.0") // set directly in grid renderer or axis
     public final boolean isHorizontalGridLinesVisible() {
         return horizontalGridLinesVisibleProperty().get();
     }
 
+    @Deprecated(since = "11.2.0") // set directly in grid renderer or axis
     public final void setHorizontalGridLinesVisible(final boolean value) {
         horizontalGridLinesVisibleProperty().set(value);
     }
 
+    @Deprecated(since = "11.2.0") // set directly in grid renderer or axis
     public final BooleanProperty verticalGridLinesVisibleProperty() {
         return gridRenderer.verticalGridLinesVisibleProperty();
     }
 
+    @Deprecated(since = "11.2.0") // set directly in grid renderer or axis
     public final boolean isVerticalGridLinesVisible() {
         return verticalGridLinesVisibleProperty().get();
     }
 
+    @Deprecated(since = "11.2.0") // set directly in grid renderer or axis
     public final void setVerticalGridLinesVisible(final boolean value) {
         verticalGridLinesVisibleProperty().set(value);
     }
@@ -758,7 +764,7 @@ public class Chart extends Region implements Observable{
     private final ChangeListener<Side> axisSideChangeListener = this::axisSideChanged;
 
     /**
-     * Returns the x axis.
+     * Returns the x-axis.
      *
      * @return x axis
      */
@@ -767,7 +773,7 @@ public class Chart extends Region implements Observable{
     }
 
     /**
-     * Returns the y axis.
+     * Returns the y-axis.
      *
      * @return y axis
      */
