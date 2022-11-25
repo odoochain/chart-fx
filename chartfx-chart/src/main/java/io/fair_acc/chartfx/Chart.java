@@ -61,7 +61,6 @@ import java.util.stream.Collectors;
 public class Chart extends Region implements Observable{
     private static final Logger LOGGER = LoggerFactory.getLogger(Chart.class);
     protected static final boolean DEBUG = false; // for more verbose debugging
-    private static final int DEFAULT_TRIGGER_DISTANCE = 50;
     protected static final int BURST_LIMIT_MS = 15;
 
     public Chart() {
@@ -83,57 +82,10 @@ public class Chart extends Region implements Observable{
             }
         }
 
-        // setTriggerDistance(Chart.DEFAULT_TRIGGER_DISTANCE);
         setMinSize(0, 0);
         setPrefSize(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE);
         setMaxSize(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE);
         setPadding(Insets.EMPTY);
-
-        // populate SidesPane with default container
-        final BorderPane localBorderPane = new BorderPane();
-        // axesAndCanvasPane.setPadding(Insets.EMPTY);
-        // localBorderPane.setCenter(new StackPane(plotBackground, axesAndCanvasPane, plotForeGround));
-        plotBackground.toBack();
-        plotForeGround.toFront();
-        plotForeGround.setMouseTransparent(true);
-
-        for (final Side side : Side.values()) {
-            BorderPane.setAlignment(getMeasurementBar(side), Pos.CENTER);
-        }
-        localBorderPane.setTop(getMeasurementBar(Side.TOP));
-        localBorderPane.setBottom(getMeasurementBar(Side.BOTTOM));
-        localBorderPane.setLeft(getMeasurementBar(Side.LEFT));
-        localBorderPane.setRight(getMeasurementBar(Side.RIGHT));
-
-        // alt: canvas resize (default JavaFX Canvas does not automatically
-        // resize to pref width/height according to parent constraints
-        // canvas.widthProperty().bind(stackPane.widthProperty());
-        // canvas.heightProperty().bind(stackPane.heightProperty());
-        getCanvasForeground().setManaged(false);
-        final ChangeListener<Number> canvasSizeChangeListener = (ch, o, n) -> {
-            final double width = getCanvas().getWidth();
-            final double height = getCanvas().getHeight();
-
-            if (getCanvasForeground().getWidth() != width || getCanvasForeground().getHeight() != height) {
-                // workaround needed so that pane within pane does not trigger
-                // recursions w.r.t. repainting
-                getCanvasForeground().resize(width, height);
-            }
-
-            if (!isCanvasChangeRequested) {
-                isCanvasChangeRequested = true;
-                Platform.runLater(() -> {
-                    this.layoutChildren();
-                    isCanvasChangeRequested = false;
-                });
-            }
-        };
-        canvas.widthProperty().addListener(canvasSizeChangeListener);
-        canvas.heightProperty().addListener(canvasSizeChangeListener);
-
-        getCanvasForeground().setMouseTransparent(true);
-        getCanvas().toFront();
-        getCanvasForeground().toFront();
 
         plotBackground.getStyleClass().setAll("chart-plot-background");
 
@@ -142,9 +94,6 @@ public class Chart extends Region implements Observable{
             canvas.setCacheHint(CacheHint.QUALITY);
         }
 
-        // axesAndCanvasPane.add(hiddenPane, 2, 2); // centre-centre
-        canvas.setStyle("-fx-background-color: rgba(200, 250, 200, 0.5);");
-
         // add plugin handling and listeners
         getPlugins().addListener(pluginsChangedListener);
 
@@ -152,7 +101,6 @@ public class Chart extends Region implements Observable{
 
         // register listener in tool bar FlowPane
         // toolBar.registerListener();
-        // setTop(getToolBar());
 
         // getTitleLegendPane(Side.TOP).getChildren().add(titleLabel);
 
@@ -176,22 +124,16 @@ public class Chart extends Region implements Observable{
         gridRenderer.getVerticalMinorGrid().visibleProperty().addListener(gridLineVisibilitychange);
         gridRenderer.drawOnTopProperty().addListener(gridLineVisibilitychange);
 
-        this.setAnimated(false);
         getRenderers().addListener(this::rendererChanged);
-
         getRenderers().add(new ErrorDataSetRenderer());
 
-        canvas.setStyle("-fx-background-color: blue;");
         axes.addListener((ListChangeListener<Axis>) c -> {
             while (c.next()) {
                 getChildren().removeAll(c.getRemoved());
                 c.getAddedSubList().forEach(ax -> getChildren().add((Node) ax));
-                // getChildren().addAll((List<Node>) c.getAddedSubList());
             }
         });
-        getChildren().addAll(canvas, toolBarPane, legend.get().getNode());
-        canvas.toFront();
-        toolBarPane.toFront();
+        getChildren().addAll(plotBackground, canvas, canvasForeground, plotForeGround, toolBarPane, legend.get().getNode());
     }
 
     // ****************
@@ -282,7 +224,7 @@ public class Chart extends Region implements Observable{
     /**
      * When true any data changes will be animated.
      */
-    private final BooleanProperty animated = new SimpleBooleanProperty(this, "animated", true);
+    private final BooleanProperty animated = new SimpleBooleanProperty(this, "animated", false);
     /**
      * Animator for animating stuff on the chart
      */
@@ -1146,9 +1088,11 @@ public class Chart extends Region implements Observable{
     }
 
     // ********************
-    // Layouting
+    // Layout
     // ********************
-    /** isCanvasChangeRequested is a recursion guard to update canvas only once */
+    /**
+     * isCanvasChangeRequested is a recursion guard to update canvas only once
+     */
     protected boolean isCanvasChangeRequested;
     /** layoutOngoing is a recursion guard to update canvas only once */
     protected boolean layoutOngoing;
@@ -1182,6 +1126,9 @@ public class Chart extends Region implements Observable{
         }
         final long start = ProcessingProfiler.getTimeStamp();
         layoutOngoing = true;
+
+        plotBackground.resizeRelocate(0, 0, getWidth(), getHeight());
+        plotForeGround.resizeRelocate(0, 0, getWidth(), getHeight());
 
         double marginTop = 0;
         double marginBottom = 0;           // reset bounds of all axes?
@@ -1237,6 +1184,7 @@ public class Chart extends Region implements Observable{
         canvas.relocate(marginLeft, marginTop);
         canvas.setWidth(getWidth() - marginLeft - marginRight);
         canvas.setHeight(getHeight() - marginTop - marginBottom);
+        canvasForeground.resizeRelocate(marginLeft, marginTop, getWidth() - marginLeft - marginRight, getHeight() - marginTop - marginBottom);
 
         // layout axes
         positionAxes(marginTop, marginBottom, marginLeft, marginRight, horizontalCenterHeight, verticalCenterWidth, posTop);
