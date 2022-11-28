@@ -1,31 +1,16 @@
 package io.fair_acc.chartfx;
 
-import io.fair_acc.chartfx.axes.Axis;
-import io.fair_acc.chartfx.axes.spi.AbstractAxis;
-import io.fair_acc.chartfx.axes.spi.DefaultNumericAxis;
-import io.fair_acc.chartfx.legend.Legend;
-import io.fair_acc.chartfx.legend.spi.DefaultLegend;
-import io.fair_acc.chartfx.plugins.ChartPlugin;
-import io.fair_acc.chartfx.renderer.PolarTickStep;
-import io.fair_acc.chartfx.renderer.Renderer;
-import io.fair_acc.chartfx.renderer.spi.ErrorDataSetRenderer;
-import io.fair_acc.chartfx.renderer.spi.GridRenderer;
-import io.fair_acc.chartfx.renderer.spi.LabelledMarkerRenderer;
-import io.fair_acc.chartfx.ui.ChartLayoutAnimator;
-import io.fair_acc.chartfx.ui.HidingPane;
-import io.fair_acc.chartfx.ui.css.CssPropertyFactory;
-import io.fair_acc.chartfx.ui.geometry.Side;
-import io.fair_acc.chartfx.utils.FXUtils;
-import io.fair_acc.dataset.DataSet;
-import io.fair_acc.dataset.event.EventListener;
-import io.fair_acc.dataset.utils.AssertUtils;
-import io.fair_acc.dataset.utils.ProcessingProfiler;
+import java.security.InvalidParameterException;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
-import javafx.beans.Observable;
 import javafx.beans.InvalidationListener;
+import javafx.beans.Observable;
 import javafx.beans.property.*;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -46,14 +31,30 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Paint;
 import javafx.stage.Window;
 import javafx.util.Duration;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.security.InvalidParameterException;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
+import io.fair_acc.chartfx.axes.Axis;
+import io.fair_acc.chartfx.axes.spi.AbstractAxis;
+import io.fair_acc.chartfx.axes.spi.DefaultNumericAxis;
+import io.fair_acc.chartfx.legend.Legend;
+import io.fair_acc.chartfx.legend.spi.DefaultLegend;
+import io.fair_acc.chartfx.plugins.ChartPlugin;
+import io.fair_acc.chartfx.renderer.PolarTickStep;
+import io.fair_acc.chartfx.renderer.Renderer;
+import io.fair_acc.chartfx.renderer.spi.ErrorDataSetRenderer;
+import io.fair_acc.chartfx.renderer.spi.GridRenderer;
+import io.fair_acc.chartfx.renderer.spi.LabelledMarkerRenderer;
+import io.fair_acc.chartfx.ui.ChartLayoutAnimator;
+import io.fair_acc.chartfx.ui.HidingPane;
+import io.fair_acc.chartfx.ui.css.CssPropertyFactory;
+import io.fair_acc.chartfx.ui.geometry.Side;
+import io.fair_acc.chartfx.utils.FXUtils;
+import io.fair_acc.dataset.DataSet;
+import io.fair_acc.dataset.event.EventListener;
+import io.fair_acc.dataset.utils.AssertUtils;
+import io.fair_acc.dataset.utils.ProcessingProfiler;
 
 /**
  * Reimplementation of the Chart class with new layout and rendering paradigm
@@ -304,10 +305,7 @@ public class Chart extends Region implements Observable{
     // ******************
     // Measurement Bar
     // ******************
-    protected final Map<Side, Pane> measurementBar = new ConcurrentHashMap<>(4);
-    /**
-     * The side of the chart where the title is displayed default Side.TOP
-     */
+    protected final Map<Side, Pane> measurementBar = new HashMap<>(4);
     private final StyleableObjectProperty<Side> measurementBarSide = CSS.createObjectProperty(this, "measurementBarSide", Side.RIGHT, false,
             StyleConverter.getEnumConverter(Side.class), (oldVal, newVal) -> {
                 AssertUtils.notNull("Side must not be null", newVal);
@@ -342,9 +340,6 @@ public class Chart extends Region implements Observable{
         }
     };
 
-    /**
-     * The side of the chart where the title is displayed default Side.TOP
-     */
     private final StyleableObjectProperty<Side> titleSide = CSS.createObjectProperty(this, "titleSide", Side.TOP, false,
             StyleConverter.getEnumConverter(Side.class), (oldVal, newVal) -> AssertUtils.notNull("Side must not be null", newVal) , this::requestLayout);
     public final String getTitle() {
@@ -380,7 +375,6 @@ public class Chart extends Region implements Observable{
     // **************
     protected final ToolBar toolBar = new ToolBar();
     protected final HidingPane toolBarPane = new HidingPane(toolBar);
-    protected final BooleanProperty toolBarPinned = new SimpleBooleanProperty(this, "toolBarPinned", false);
     private final StyleableObjectProperty<Side> toolBarSide = CSS.createObjectProperty(this, "toolBarSide", Side.TOP, false,
             StyleConverter.getEnumConverter(Side.class), (oldVal, newVal) -> AssertUtils.notNull("Side must not be null", newVal) , this::requestLayout);
 
@@ -396,7 +390,7 @@ public class Chart extends Region implements Observable{
         return toolBarSideProperty().get();
     }
     public Chart setToolBarPinned(boolean value) {
-        toolBarPinned.set(value);
+        toolBarPinnedProperty().set(value);
         return this;
     }
 
@@ -405,7 +399,7 @@ public class Chart extends Region implements Observable{
     }
 
     public BooleanProperty toolBarPinnedProperty() {
-        return toolBarPinned;
+        return toolBarPane.sticky;
     }
 
     public final ObjectProperty<Side> toolBarSideProperty() {
@@ -413,11 +407,12 @@ public class Chart extends Region implements Observable{
     }
 
     public boolean isToolBarPinned() {
-        return toolBarPinned.get();
+        return toolBarPinnedProperty().get();
     }
 
     // *****************
     // Showing plot
+    // this is used to disable all charting computations if the plot is not visible in the UI
     // *****************
     protected final BooleanProperty showing = new SimpleBooleanProperty(this, "showing", false);
     protected final ChangeListener<? super Boolean> showingListener = (ch2, o, n) -> showing.set(n);
@@ -550,7 +545,7 @@ public class Chart extends Region implements Observable{
     // Plugins
     // *****************
     public final ObservableList<ChartPlugin> plugins = FXCollections.observableArrayList();
-    private final Map<ChartPlugin, Group> pluginGroups = new ConcurrentHashMap<>();
+    private final Map<ChartPlugin, Group> pluginGroups = new HashMap<>();
     protected final ListChangeListener<ChartPlugin> pluginsChangedListener = this::pluginsChanged;
 
     public final ObservableList<ChartPlugin> getPlugins() {
@@ -564,8 +559,16 @@ public class Chart extends Region implements Observable{
     protected void pluginsChanged(final ListChangeListener.Change<? extends ChartPlugin> change) {
         // update chart property
         while (change.next()) {
-            change.getAddedSubList().forEach(c -> c.setChart(this));
-            change.getRemoved().stream().filter(c -> c.getChart() == this).forEach(c -> c.setChart(null));
+            change.getRemoved().stream().filter(c -> c.getChart() == this).forEach(c -> {
+                c.setChart(null);
+                getChildren().remove(pluginGroups.remove(c));
+            });
+            change.getAddedSubList().forEach(c -> {
+                c.setChart(this);
+                final var group = new Group(c.getChartChildren());
+                pluginGroups.put(c, group);
+                getChildren().add(group);
+            });
         }
         requestLayout();
     }

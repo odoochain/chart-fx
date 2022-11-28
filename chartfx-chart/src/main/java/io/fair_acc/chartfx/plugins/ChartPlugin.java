@@ -240,7 +240,7 @@ public abstract class ChartPlugin {
      * Converts given display point within the plot area coordinates to the corresponding data point within data
      * coordinates.
      *
-     * @param yAxis the number-based y axis
+     * @param yAxis the number-based y-axis
      * @param displayPoint the display point to be converted
      * @return the data point
      */
@@ -248,23 +248,11 @@ public abstract class ChartPlugin {
         final Chart chart = getChart();
         if (chart == null) {
             if (LOGGER.isWarnEnabled()) {
-                LOGGER.atWarn().addArgument(chart).log("chart '{}' is not of type XYChart returning null");
+                LOGGER.atWarn().log("chart is null");
             }
             return null;
         }
         return new Tuple<>(chart.getXAxis().getValueForDisplay(displayPoint.getX()),
                 yAxis.getValueForDisplay(displayPoint.getY()));
-    }
-
-    /**
-     * Converts given point in data coordinates to a point in display coordinates.
-     *
-     * @param yAxis the corresponding y-axis (number axis)
-     * @param x the X coordinate (can be generic non-number, ie. CategoryAxis)
-     * @param y the Y coordinate on the yAxis (Number based)
-     * @return corresponding display point within the plot area
-     */
-    protected final Point2D toDisplayPoint(final Axis yAxis, final double x, final double y) {
-        return new Point2D(getChart().getXAxis().getDisplayPosition(x), yAxis.getDisplayPosition(y));
     }
 }
