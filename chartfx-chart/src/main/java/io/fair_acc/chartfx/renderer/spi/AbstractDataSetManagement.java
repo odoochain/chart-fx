@@ -16,6 +16,8 @@ import io.fair_acc.dataset.spi.DoubleErrorDataSet;
 import io.fair_acc.dataset.utils.NoDuplicatesList;
 import io.fair_acc.dataset.utils.ProcessingProfiler;
 
+import java.util.Objects;
+
 /**
  * @author rstein
  * @param <R> renderer generics
@@ -68,11 +70,11 @@ public abstract class AbstractDataSetManagement<R extends Renderer> implements R
      * @return The requested axis
      */
     protected Axis getFirstAxis(final Orientation orientation, final Chart fallback) {
-        final Axis axis = Chart.getFirstAxis(getAxes(), orientation);
-        if (axis == null) {
-            return fallback.getFirstAxis(orientation);
-        }
-        return axis;
+        return Objects.requireNonNullElseGet(Chart.getFirstAxis(getAxes(), orientation), () -> fallback.getFirstAxis(orientation));
+    }
+
+    public Axis getFirstAxis(final Orientation orientation) {
+        return Chart.getFirstAxis(getAxes(), orientation);
     }
 
     /**

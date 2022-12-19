@@ -11,7 +11,9 @@ import java.util.stream.Stream;
 
 import io.fair_acc.chartfx.Chart;
 import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
 import javafx.geometry.Bounds;
@@ -39,7 +41,7 @@ import io.fair_acc.dataset.spi.utils.Tuple;
  *
  * @author Grzegorz Kruk
  */
-public class DataPointTooltip extends AbstractDataFormattingPlugin {
+public class DataPointTooltip extends ChartPlugin {
     /**
      * Name of the CSS class of the tool tip label.
      */
@@ -65,7 +67,7 @@ public class DataPointTooltip extends AbstractDataFormattingPlugin {
         }
     };
 
-    private final EventHandler<MouseEvent> mouseMoveHandler = this::updateToolTip;
+    private final ObjectProperty<DataPointFormatter> formatter = new SimpleObjectProperty<>(this, "Default Datapoint formatter", new DataPointFormatter());
 
     /**
      * Creates a new instance of DataPointTooltip class with {{@link #pickingDistanceProperty() picking distance}
@@ -76,6 +78,7 @@ public class DataPointTooltip extends AbstractDataFormattingPlugin {
         label.setWrapText(true);
         label.setMinWidth(0);
         label.setManaged(false);
+        EventHandler<MouseEvent> mouseMoveHandler = this::updateToolTip;
         registerInputEventHandler(MouseEvent.MOUSE_MOVED, mouseMoveHandler);
     }
 
@@ -178,7 +181,7 @@ public class DataPointTooltip extends AbstractDataFormattingPlugin {
     }
 
     protected String formatDataPoint(final DataPoint dataPoint) {
-        return formatData(dataPoint.renderer, new Tuple<>(dataPoint.x, dataPoint.y));
+        return formatter.get().formatData(dataPoint.renderer, new Tuple<>(dataPoint.x, dataPoint.y));
     }
 
     protected String formatLabel(DataPoint dataPoint) {
@@ -307,5 +310,9 @@ public class DataPointTooltip extends AbstractDataFormattingPlugin {
         public DataPoint withFormattedLabel(String formattedLabel) {
             return new DataPoint(renderer, x, y, formattedLabel, distanceFromMouse, formattedLabel);
         }
+    }
+
+    public ObjectProperty<DataPointFormatter> formatterProperty() {
+        return formatter;
     }
 }
