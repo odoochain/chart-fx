@@ -235,7 +235,7 @@ public class Chart extends Region implements Observable{
      * This is used to check if any given animation should run. It returns true if animation is enabled and the node is
      * visible and in a scene.
      *
-     * @return true if should animate
+     * @return true if chart should animate
      */
     protected final boolean shouldAnimate() {
         return isAnimated() && getScene() != null;
@@ -750,6 +750,28 @@ public class Chart extends Region implements Observable{
         requestLayout();
     }
 
+    public static Axis getFirstAxis(final List<Axis> axes, final Orientation orientation) {
+        for (final Axis axis : axes) {
+            if (axis.getSide() == null) {
+                continue;
+            }
+            switch (orientation) {
+                case VERTICAL:
+                    if (axis.getSide().isVertical()) {
+                        return axis;
+                    }
+                    break;
+                case HORIZONTAL:
+                default:
+                    if (axis.getSide().isHorizontal()) {
+                        return axis;
+                    }
+                    break;
+            }
+        }
+        return null;
+    }
+
     /**
      * function called whenever a axis has been invalidated (e.g. range change or parameter plotting changes). Typically
      * calls 'requestLayout()' but can be overwritten in derived classes.
@@ -771,40 +793,15 @@ public class Chart extends Region implements Observable{
     }
 
     public Axis getFirstAxis(final Orientation orientation) {
-        for (final Axis axis : getAxes()) {
-            if (axis.getSide() == null) {
-                continue;
-            }
-            switch (orientation) {
-                case VERTICAL:
-                    if (axis.getSide().isVertical()) {
-                        return axis;
-                    }
-                    break;
-                case HORIZONTAL:
-                default:
-                    if (axis.getSide().isHorizontal()) {
-                        return axis;
-                    }
-                    break;
-            }
-        }
-        // Add default axis if no suitable axis is available
-        switch (orientation) {
-            case HORIZONTAL:
-                DefaultNumericAxis newXAxis = new DefaultNumericAxis("x-Axis");
-                newXAxis.setSide(Side.BOTTOM);
-                newXAxis.setDimIndex(DataSet.DIM_X);
-                getAxes().add(newXAxis);
-                return newXAxis;
-            case VERTICAL:
-            default:
-                DefaultNumericAxis newYAxis = new DefaultNumericAxis("y-Axis");
-                newYAxis.setSide(Side.LEFT);
-                newYAxis.setDimIndex(DataSet.DIM_Y);
-                getAxes().add(newYAxis);
-                return newYAxis;
-        }
+        return Objects.requireNonNullElseGet(getFirstAxis(getAxes(), orientation), () -> {
+            // Add default axis if no suitable axis is available
+            var horizontal = orientation == Orientation.HORIZONTAL;
+            DefaultNumericAxis newAxis = new DefaultNumericAxis(horizontal ? "x-Axis" : "y-Axis");
+            newAxis.setSide(horizontal ? Side.BOTTOM : Side.LEFT);
+            newAxis.setDimIndex(horizontal ? DataSet.DIM_X : DataSet.DIM_Y);
+            getAxes().add(newAxis);
+            return newAxis;
+        });
     }
 
     public ObservableList<Axis> getAxes() {

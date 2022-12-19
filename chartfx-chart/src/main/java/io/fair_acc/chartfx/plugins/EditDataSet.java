@@ -582,7 +582,7 @@ public class EditDataSet extends TableViewer {
 
         for (final Renderer rend : chart.getRenderers()) {
             final ObservableList<Axis> axes = rend.getAxes();
-            findDataPoint(getFirstAxis(axes, Orientation.HORIZONTAL), getFirstAxis(axes, Orientation.VERTICAL),
+            findDataPoint(Chart.getFirstAxis(axes, Orientation.HORIZONTAL), Chart.getFirstAxis(axes, Orientation.VERTICAL),
                     rend.getDatasets());
         }
 
@@ -735,50 +735,12 @@ public class EditDataSet extends TableViewer {
         }
     }
 
-    private static Axis getFirstAxis(final List<Axis> axes, final Orientation orientation) {
-        for (final Axis axis : axes) {
-            if (axis.getSide() == null) {
-                continue;
-            }
-            switch (orientation) {
-            case VERTICAL:
-                if (axis.getSide().isVertical()) {
-                    return axis;
-                }
-                break;
-            case HORIZONTAL:
-            default:
-                if (axis.getSide().isHorizontal()) {
-                    return axis;
-                }
-                break;
-            }
-        }
-        return null;
-    }
-
     public static boolean isControlDown() {
         return controlDown;
     }
 
     public static boolean isShiftDown() {
         return shiftDown;
-    }
-
-    /**
-     * limits the mouse event position to the min/max range of the canvas (N.B. event can occur to be
-     * negative/larger/outside than the canvas) This is to avoid zooming outside the visible canvas range
-     *
-     * @param event the mouse event
-     * @param plotBounds of the canvas
-     * @return the clipped mouse location
-     */
-    private static Point2D limitToPlotArea(final MouseEvent event, final Bounds plotBounds) {
-        final double limitedX = Math.max(Math.min(event.getX() - plotBounds.getMinX(), plotBounds.getMaxX()),
-                plotBounds.getMinX());
-        final double limitedY = Math.max(Math.min(event.getY() - plotBounds.getMinY(), plotBounds.getMaxY()),
-                plotBounds.getMinY());
-        return new Point2D(limitedX, limitedY);
     }
 
     public static class DataPoint {

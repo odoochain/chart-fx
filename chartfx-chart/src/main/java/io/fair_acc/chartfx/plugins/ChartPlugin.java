@@ -12,6 +12,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
 import javafx.event.EventType;
+import javafx.geometry.Bounds;
 import javafx.geometry.Point2D;
 import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
@@ -68,6 +69,22 @@ public abstract class ChartPlugin {
                 addEventHandlers(newChart.getPlotBackground());
             }
         });
+    }
+
+    /**
+     * limits the mouse event position to the min/max range of the canavs (N.B. event can occur to be
+     * negative/larger/outside than the canvas) This is to avoid zooming outside the visible canvas range
+     *
+     * @param event the mouse event
+     * @param plotBounds of the canvas
+     * @return the clipped mouse location
+     */
+    protected static Point2D limitToPlotArea(final MouseEvent event, final Bounds plotBounds) {
+        final double limitedX = Math.max(Math.min(event.getX() - plotBounds.getMinX(), plotBounds.getMaxX()),
+                plotBounds.getMinX());
+        final double limitedY = Math.max(Math.min(event.getY() - plotBounds.getMinY(), plotBounds.getMaxY()),
+                plotBounds.getMinY());
+        return new Point2D(limitedX, limitedY);
     }
 
     /**

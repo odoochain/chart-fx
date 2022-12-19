@@ -55,28 +55,6 @@ public abstract class AbstractDataSetManagement<R extends Renderer> implements R
         return dataSets;
     }
 
-    public Axis getFirstAxis(final Orientation orientation) {
-        for (final Axis axis : getAxes()) {
-            if (axis.getSide() == null) {
-                continue;
-            }
-            switch (orientation) {
-            case VERTICAL:
-                if (axis.getSide().isVertical()) {
-                    return axis;
-                }
-                break;
-            case HORIZONTAL:
-            default:
-                if (axis.getSide().isHorizontal()) {
-                    return axis;
-                }
-                break;
-            }
-        }
-        return null;
-    }
-
     /**
      * Returns the first axis for a specific orientation and falls back to the first axis
      * of the chart if no such axis exists. The chart will automatically return a default
@@ -90,7 +68,7 @@ public abstract class AbstractDataSetManagement<R extends Renderer> implements R
      * @return The requested axis
      */
     protected Axis getFirstAxis(final Orientation orientation, final Chart fallback) {
-        final Axis axis = getFirstAxis(orientation);
+        final Axis axis = Chart.getFirstAxis(getAxes(), orientation);
         if (axis == null) {
             return fallback.getFirstAxis(orientation);
         }
