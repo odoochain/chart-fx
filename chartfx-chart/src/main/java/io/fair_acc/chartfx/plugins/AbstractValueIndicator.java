@@ -267,7 +267,7 @@ public abstract class AbstractValueIndicator extends ChartPlugin {
      */
     protected final void layoutLabel(final Bounds bounds, final double hPos, final double vPos) {
         if (label.getText() == null || label.getText().isEmpty()) {
-            getChartChildren().remove(label);
+            label.setVisible(false);
             return;
         }
 
