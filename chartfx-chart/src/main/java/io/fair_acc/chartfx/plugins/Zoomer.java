@@ -986,13 +986,17 @@ public class Zoomer extends ChartPlugin {
     }
 
     private void zoomInDragged(final MouseEvent event) {
-        final Bounds plotAreaBounds = getChart().getPlotArea().getBoundsInLocal();
-        zoomEndPoint = limitToPlotArea(event, plotAreaBounds);
+        final Bounds plotAreaBounds = getChart().getPlotArea().getParent().localToScene(getChart().getPlotArea().getBoundsInParent());
+        zoomEndPoint = getChart().getPlotForeground().sceneToLocal(
+                Math.min(Math.max(event.getX(), plotAreaBounds.getMinX()), plotAreaBounds.getMaxX()),
+                Math.min(Math.max(event.getY(), plotAreaBounds.getMinY()), plotAreaBounds.getMaxY()));
 
-        double zoomRectX = plotAreaBounds.getMinX();
-        double zoomRectY = plotAreaBounds.getMinY();
-        double zoomRectWidth = plotAreaBounds.getWidth();
-        double zoomRectHeight = plotAreaBounds.getHeight();
+
+        final Bounds plotAreaBoundsLocal = getChart().getPlotForeground().sceneToLocal(plotAreaBounds);
+        double zoomRectX = plotAreaBoundsLocal.getMinX();
+        double zoomRectY = plotAreaBoundsLocal.getMinY();
+        double zoomRectWidth = plotAreaBoundsLocal.getWidth();
+        double zoomRectHeight = plotAreaBoundsLocal.getHeight();
 
         if (isAutoZoomEnabled()) {
             final double diffX = zoomEndPoint.getX() - zoomStartPoint.getX();
@@ -1039,8 +1043,7 @@ public class Zoomer extends ChartPlugin {
     }
 
     private void zoomInStarted(final MouseEvent event) {
-        zoomStartPoint = new Point2D(event.getX(), event.getY());
-
+        zoomStartPoint = getChart().getPlotForeground().sceneToLocal(new Point2D(event.getX(), event.getY()));
         zoomRectangle.setX(zoomStartPoint.getX());
         zoomRectangle.setY(zoomStartPoint.getY());
         zoomRectangle.setWidth(0);

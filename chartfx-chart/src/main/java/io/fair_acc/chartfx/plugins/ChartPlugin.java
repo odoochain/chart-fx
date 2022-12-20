@@ -72,7 +72,7 @@ public abstract class ChartPlugin {
     }
 
     /**
-     * limits the mouse event position to the min/max range of the canavs (N.B. event can occur to be
+     * limits the mouse event position to the min/max range of the canvas (N.B. event can occur to be
      * negative/larger/outside than the canvas) This is to avoid zooming outside the visible canvas range
      *
      * @param event the mouse event

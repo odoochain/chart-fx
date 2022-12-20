@@ -561,13 +561,13 @@ public class Chart extends Region implements Observable{
         while (change.next()) {
             change.getRemoved().stream().filter(c -> c.getChart() == this).forEach(c -> {
                 c.setChart(null);
-                getChildren().remove(pluginGroups.remove(c));
+                getPlotForeground().getChildren().remove(pluginGroups.remove(c));
             });
             change.getAddedSubList().forEach(c -> {
                 c.setChart(this);
                 final var group = new Group(c.getChartChildren());
                 pluginGroups.put(c, group);
-                getChildren().add(group);
+                getPlotForeground().getChildren().add(group);
             });
         }
         requestLayout();
